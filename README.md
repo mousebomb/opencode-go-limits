@@ -4,7 +4,8 @@
 
 ## 使用方式
 
-双击打开 `index.html` 即可，无需安装、无需服务器、无需手动刷新。
+- **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)
+- 本地使用：双击打开 `index.html` 即可，无需安装、无需服务器、无需手动刷新。
 
 - 打开页面时自动抓取最新数据；抓取失败自动回退到上一次成功的本地缓存（localStorage）。
 - 顶部"立即刷新"按钮可强制重新抓取。
