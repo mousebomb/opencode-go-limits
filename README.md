@@ -76,7 +76,37 @@ MiniMax M2.5 在价格表中存在，但官方既未公布其请求模式，也�
 
 ```
 opencode-go-limits/
-├── index.html        # 单文件工具，核心
-├── README.md         # 本文档
-└── devlog/           # 开发日志
+├── index.html         # 单文件工具，核心
+├── package.json       # 依赖（ssh2-sftp-client）与脚本（deploy / setup:hooks）
+├── mbtools/deploy.cjs # 自动部署脚本（读 .env，SFTP 上传 index.html）
+├── .githooks/pre-push # git hook：push 时自动触发部署
+├── .env.example       # 部署配置模板（真实配置填到 .env，不入库）
+├── README.md          # 本文档
+└── devlog/            # 开发日志
 ```
+
+## 自动部署（可选）
+
+本仓库带一套**本地 git hook 自动部署**方案：修改 `index.html` 后 `git push`，会自动 SFTP 上传到你的服务器，无需手动操作。
+
+### 原理与安全设计
+
+- 部署脚本在**本地**运行（`mbtools/deploy.cjs`），SSH 密钥不出你本机，不经过任何第三方（对比 GitHub Actions 需把密钥交给 GitHub）。
+- 服务器 IP、账号、密钥、目录等敏感配置全部放在 `.env`（已被 `.gitignore` 忽略，不入库），仓库只提交 `.env.example` 占位模板。
+- **对 fork 者无影响**：fork/clone 下来的仓库没有 `.env`，hook 检测不到配置时自动跳过（exit 0），不会阻塞 push，也看不到任何服务器信息。
+
+### 启用步骤
+
+1. 安装依赖：`npm install`
+2. 复制配置模板并填写真实值：`cp .env.example .env`（`DEPLOY_HOST` 服务器 IP、`DEPLOY_TARGET_DIR` 线上目录等）
+3. 注册 hook：`npm run setup:hooks`（即 `git config core.hooksPath .githooks`，仅本地生效，不入库）
+
+完成后，`git push` 时若 `index.html` 有变更会自动触发部署。
+
+### 行为约定
+
+- `.env` 不存在 → 跳过（fork 者不受影响）
+- `index.html` 无变更 → 跳过
+- 部署失败 → **放行 push，仅告警**（exit 0），不会因部署问题阻塞你提交代码
+
+如需手动部署：`npm run deploy`。

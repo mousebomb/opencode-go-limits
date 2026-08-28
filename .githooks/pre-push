@@ -1,0 +1,41 @@
+#!/bin/bash
+# git pre-push hook：push 时自动部署 index.html 到服务器
+# 行为约定：
+#   - .env 不存在 → 跳过（fork 者 clone 后不受影响）
+#   - index.html 无变更 → 跳过
+#   - 部署失败 → 放行 push，仅告警
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# 本地缺少 .env：fork 者环境，直接跳过
+if [ ! -f .env ]; then
+  echo "[pre-push] 未发现 .env，跳过自动部署（fork 者无需关心）"
+  exit 0
+fi
+
+# 读取 pre-push 标准输入：每行 <local ref> <local sha> <remote ref> <remote sha>
+# 逐个判断本次 push 的 ref 是否涉及 index.html 变更
+NEED_DEPLOY=0
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ -z "$local_sha" ] && continue
+  # local_sha 全 0 表示删除远端分支，跳过
+  case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ] || [ -z "$remote_sha" ]; then
+    # 远端无此分支：首次推送，只要有 index.html 就部署
+    git cat-file -e "$local_sha:index.html" 2>/dev/null && NEED_DEPLOY=1 && continue
+  else
+    # 比较本次推送引入的提交与远端基线
+    git diff --name-only "$remote_sha" "$local_sha" -- index.html | grep -q . && NEED_DEPLOY=1 && continue
+  fi
+done < /dev/stdin
+
+if [ "$NEED_DEPLOY" != "1" ]; then
+  echo "[pre-push] index.html 无变更，跳过部署"
+  exit 0
+fi
+
+echo "[pre-push] index.html 有变更，触发部署..."
+node mbtools/deploy.cjs
+# 部署失败也不阻断 push（仅告警），保持 exit 0
+exit 0

@@ -1,0 +1,13 @@
+{
+  "name": "opencode-go-limits",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenCode Go 每月预估请求数可视化工具（单文件 HTML）",
+  "scripts": {
+    "deploy": "node mbtools/deploy.cjs",
+    "setup:hooks": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "ssh2-sftp-client": "^11.0.0"
+  }
+}
