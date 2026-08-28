@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCode Go · 每月预估请求数</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --bar: #2f81f7;
+    --warn: #d29922;
+    --ok: #3fb950;
+    --muted-bar: #3a4149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    padding: 24px 20px 60px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .hd-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; }
+  #refresh {
+    margin-left: auto;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 14px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #refresh:hover { border-color: var(--muted); }
+  #meta { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  #chart { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 6px; }
+  .row-head, .row {
+    display: grid;
+    grid-template-columns: 235px 1fr 110px;
+    column-gap: 14px;
+    align-items: center;
+  }
+  .row-head { font-size: 12px; color: var(--muted); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .row { position: relative; padding: 5px 0; border-radius: 6px; }
+  .row:hover { background: rgba(255,255,255,.03); }
+  .row-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-name .flag { color: var(--warn); margin-left: 4px; }
+  .track { position: relative; height: 18px; }
+  .bar {
+    position: absolute; left: 0; top: 5px; height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #2f81f7, #56d364);
+    min-width: 2px;
+  }
+  .bar.na { background: var(--muted-bar); }
+  .row-value { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
+  .grid-line {
+    position: absolute; top: 4px; bottom: 4px; width: 1px; background: var(--border);
+    z-index: 0;
+  }
+  .grid-label {
+    position: absolute; top: 100%; transform: translateX(-50%);
+    font-size: 10px; color: var(--muted);
+  }
+  /* 刻度轴 */
+  .axis { position: relative; height: 22px; margin-top: 6px; }
+  /* tooltip */
+  #tip {
+    position: fixed; z-index: 10; pointer-events: none;
+    background: #1c2128; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-size: 12px; line-height: 1.7; min-width: 260px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.5);
+  }
+  #tip .t-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  #tip .t-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+  #tip .k { color: var(--muted); }
+  #tip .v { text-align: right; font-variant-numeric: tabular-nums; }
+  #tip .warn { color: var(--warn); }
+  .hidden { display: none; }
+  #error { display: none; background: rgba(210,153,34,.12); border: 1px solid var(--warn); color: var(--warn); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  #detail-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  #detail-table th, #detail-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+  #detail-table th:first-child, #detail-table td:first-child { text-align: left; }
+  #detail-table th { background: var(--panel); color: var(--muted); font-weight: 600; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hd-top">
+      <h1>OpenCode Go · 每月预估请求数</h1>
+      <button id="refresh" type="button">立即刷新</button>
+    </div>
+    <p id="meta">正在获取最新数据…</p>
+  </header>
+
+  <div id="error"></div>
+  <div id="chart">
+    <div class="row-head">
+      <span>模型</span>
+      <span>每月请求数（估算）</span>
+      <span>数量</span>
+    </div>
+    <div id="rows"></div>
+    <div id="axis" class="axis"></div>
+  </div>
+
+  <details id="detail">
+    <summary>查看原始数据明细（单价 / 额度 / 估算过程）</summary>
+    <table id="detail-table"></table>
+  </details>
+
+  <footer>
+    数据源：<a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai 官方文档</a>
+    （GitHub <code>anomalyco/opencode</code> 同步）。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。
+  </footer>
+</div>
+
+<div id="tip" class="hidden"></div>
+
+<script>
+// ========== 常量与工具 ==========
+const SOURCES = [
+  'https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx',
+  'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx',
+];
+const CACHE_KEY = 'opencode-go-limits-v1';
+const $ = (sel) => document.querySelector(sel);
+
+// 去掉千分位并转数字
+const num = (s) => parseFloat(String(s).replace(/,/g, ''));
+// 金额字符串（如 "$2.00" / "-"）转数字，'-' 返回 null
+const money = (s) => (s === '-' || s == null ? null : parseFloat(s.replace('$', '')));
+// 模型名归一化：小写 + 去掉空格/连字符，用于模糊匹配
+const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
+// 千分位格式
+const fmt = (n) => Number(n).toLocaleString('en-US');
+// 缩写格式：100 → 100，1,000 → 1k，1,000,000 → 1M
+const fmtShort = (n) => (n >= 1e6 ? (n / 1e6) + 'M' : n >= 1e3 ? (n / 1e3) + 'k' : String(n));
+const now = () => new Date().toLocaleString('zh-CN', { hour12: false });
+
+// ========== 抓取 ==========
+async function fetchMdx() {
+  let lastErr;
+  for (const url of SOURCES) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
+// ========== mdx 解析 ==========
+// 取锚点之后的子串
+function section(src, anchor) {
+  const i = src.indexOf(anchor);
+  return i < 0 ? null : src.slice(i + anchor.length);
+}
+
+// 解析锚点后的第一个 markdown 表格，返回去除表头的数据行二维数组
+function parseTable(src, anchor) {
+  const seg = section(src, anchor);
+  if (!seg) return [];
+  const rows = [];
+  let started = false;
+  for (const line of seg.split('\n')) {
+    const t = line.trim();
+    if (!t.startsWith('|')) { if (started) break; continue; }
+    if (/^\|[\s:|-]+\|?$/.test(t)) continue; // 分隔行（| --- |）
+    started = true;
+    rows.push(t.split('|').slice(1, -1).map((c) => c.trim()));
+  }
+  return rows.slice(1); // 去掉表头行
+}
+
+// 解析"预估值基于观察到的请求模式"列表，返回 [{ expr, in, cache, out }]
+function parsePatterns(src) {
+  const seg = section(src, '预估值基于观察到的请求模式：');
+  if (!seg) return [];
+  const end = seg.indexOf('预估值还基于以下每 1M tokens 的价格');
+  const body = end >= 0 ? seg.slice(0, end) : seg;
+  const re = /^- (.+?) — 每次请求 ([0-9,]+) 个输入 token，([0-9,]+) 个缓存 token，([0-9,]+) 个输出 token$/gm;
+  const out = [];
+  let m;
+  while ((m = re.exec(body))) {
+    out.push({
+      expr: m[1],
+      in: num(m[2]), cache: num(m[3]), out: num(m[4]),
+    });
+  }
+  return out;
+}
+
+// 在模式匹配表中查找"最具体的匹配"：模式名是基准名的前缀，取最长（如 "Kimi K2.7 Code" 匹配 "Kimi K2.7"）
+function findPattern(patMap, baseNorm) {
+  let best = null, bestLen = 0;
+  for (const [key, p] of patMap) {
+    if (baseNorm.startsWith(key) && key.length > bestLen) { best = p; bestLen = key.length; }
+  }
+  return best;
+}
+
+// 展开合并写法的模型名，如 "GLM-5.3/5.2/5.1" → ["GLM-5.3","GLM-5.2","GLM-5.1"]
+function expandModelExpr(expr) {
+  const parts = expr.split('/').map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 1) return parts;
+  const head = parts[0];
+  const names = [head];
+  for (let i = 1; i < parts.length; i++) {
+    const rest = parts[i];
+    // 规则1：rest 首词若出现在 head 中，取其之前的部分作前缀（如 "DeepSeek V4 Flash / V4 Flash Vision Exp"）
+    const firstWord = rest.split(/[\s-]+/)[0];
+    const idx = head.indexOf(firstWord);
+    let prefix;
+    if (idx > 0) {
+      prefix = head.slice(0, idx);
+    } else {
+      // 规则2：去掉 head 最后一个"段"（如 "GLM-5.3" → "GLM-"）
+      const m = head.match(/^(.*[\s-])[^\s-]+$/);
+      prefix = m ? m[1] : head;
+    }
+    names.push(prefix + rest);
+  }
+  return names;
+}
+
+// ========== 数据组装 ==========
+// 解析全部原始数据，返回 { time, items }
+function parse(mdx) {
+  const prices = parseTable(mdx, '预估值还基于以下每 1M tokens 的价格以及每个模型包含的每月使用额度：');
+  const patterns = parsePatterns(mdx);
+  const official = parseTable(mdx, '下表提供了基于典型 Go 使用模式的预估请求数：');
+
+  // 请求模式匹配表：归一化模型名 → token 构成
+  const patMap = new Map();
+  for (const p of patterns) {
+    for (const name of expandModelExpr(p.expr)) patMap.set(norm(name), p);
+  }
+  // 官方每月请求数对照表：归一化模型名 → 数字（取第 4 列）
+  const offMap = new Map();
+  for (const row of official) offMap.set(norm(row[0]), num(row[3]));
+
+  // 组装每个价格行条目
+  const items = prices.map((row) => {
+    const name = row[0];
+    const base = name.replace(/\s*\(.*?\)\s*$/, '').trim(); // 去掉括号档位标注
+    const price = {
+      in: money(row[1]), out: money(row[2]), cr: money(row[3]), cw: money(row[4]),
+    };
+    const quota = money(row[5]);
+    const pat = findPattern(patMap, norm(base));
+    let monthly = null;
+    let cost = null;
+    if (pat && price.in != null && price.out != null && price.cr != null) {
+      // 每次请求成本 = (输入×单价 + 缓存×缓存价 + 输出×输出价) / 1M
+      cost = (pat.in * price.in + pat.cache * price.cr + pat.out * price.out) / 1e6;
+      monthly = cost > 0 ? quota / cost : null;
+    }
+    const officialMonthly = offMap.get(norm(base)) ?? null;
+    const diff = (monthly != null && officialMonthly) ? (monthly - officialMonthly) / officialMonthly : null;
+    return { name, base, price, quota, pat, cost, monthly, officialMonthly, diff };
+  });
+  return { time: new Date().toISOString(), items };
+}
+
+// ========== 渲染 ==========
+function render(data) {
+  const { items } = data;
+  const valids = items.filter((i) => i.monthly != null).sort((a, b) => a.monthly - b.monthly);
+  const invalids = items.filter((i) => i.monthly == null);
+  const ordered = [...valids, ...invalids];
+
+  // 对数刻度范围（避免线性刻度下小值不可见）
+  const lo = valids.length ? Math.log10(Math.min(...valids.map((i) => i.monthly))) : 0;
+  const hi = valids.length ? Math.log10(Math.max(...valids.map((i) => i.monthly))) : 1;
+  const span = hi - lo || 1;
+  const x = (v) => Math.max(0, Math.min(100, ((Math.log10(v) - lo) / span) * 100));
+
+  const rows = $('#rows');
+  rows.innerHTML = '';
+  for (const it of ordered) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const flag = it.diff != null && Math.abs(it.diff) > 0.1
+      ? '<span class="flag" title="计算值与官方值差异较大">▲</span>' : '';
+    row.innerHTML =
+      '<div class="row-name">' + esc(it.name) + flag + '</div>' +
+      '<div class="track"><div class="bar' + (it.monthly == null ? ' na' : '') + '" style="width:' + (it.monthly == null ? 0 : x(it.monthly)) + '%"></div></div>' +
+      '<div class="row-value">' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</div>';
+    bindTip(row, it);
+    rows.appendChild(row);
+  }
+
+  // 刻度轴
+  const axis = $('#axis');
+  axis.innerHTML = '';
+  const loK = Math.floor(lo), hiK = Math.ceil(hi);
+  for (let k = loK; k <= hiK; k++) {
+    const pos = ((k - lo) / span) * 100;
+    if (pos < 0 || pos > 100) continue;
+    const g = document.createElement('div');
+    g.className = 'grid-line';
+    g.style.left = pos + '%';
+    g.style.background = 'none';
+    g.style.borderLeft = '1px solid var(--border)';
+    axis.appendChild(g);
+    const label = document.createElement('span');
+    label.className = 'grid-label';
+    label.style.left = pos + '%';
+    label.textContent = fmtShort(10 ** k);
+    axis.appendChild(label);
+  }
+
+  renderDetailTable(items);
+}
+
+// tooltip：悬停显示单价/额度/估算明细
+function bindTip(row, it) {
+  row.addEventListener('mousemove', (e) => {
+    const tip = $('#tip');
+    const lines = [
+      ['每月请求数（估算）', it.monthly != null ? fmt(Math.round(it.monthly)) : '官方未提供请求模式，无法估算'],
+      ['官方对照值', it.officialMonthly != null ? fmt(it.officialMonthly) : '—'],
+      ['每月使用额度', it.quota != null ? '$' + it.quota : '—'],
+      ['每请求成本', it.cost != null ? '$' + it.cost.toFixed(6) : '—'],
+    ];
+    if (it.diff != null && Math.abs(it.diff) > 0.1) {
+      lines.push(['差异提示', '▲ 与官方值偏差 ' + (it.diff * 100).toFixed(1) + '%', true]);
+    }
+    if (it.pat) lines.push(['请求模式', it.pat.in + ' 输入 / ' + it.pat.cache + ' 缓存 / ' + it.pat.out + ' 输出']);
+    lines.push(
+      ['单价', '输入 $' + (it.price.in ?? '-') + ' · 输出 $' + (it.price.out ?? '-')],
+      ['', '缓存读 $' + (it.price.cr ?? '-') + ' · 缓存写 $' + (it.price.cw ?? '-')],
+    );
+    tip.innerHTML =
+      '<div class="t-name">' + esc(it.name) + '</div>' +
+      '<div class="t-grid">' + lines.map(([k, v, warn]) =>
+        '<span class="k">' + k + '</span><span class="v' + (warn ? ' warn' : '') + '">' + v + '</span>').join('') + '</div>';
+    tip.classList.remove('hidden');
+    // 相对视口定位，避免溢出
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = e.clientX + 14, top = e.clientY + 14;
+    if (left + tw > window.innerWidth) left = e.clientX - tw - 14;
+    if (top + th > window.innerHeight) top = e.clientY - th - 14;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  });
+  row.addEventListener('mouseleave', () => $('#tip').classList.add('hidden'));
+}
+
+// 明细表
+function renderDetailTable(items) {
+  const t = $('#detail-table');
+  const head = '<tr><th>模型</th><th>额度</th><th>输入$/M</th><th>输出$/M</th><th>缓存读$/M</th><th>缓存写$/M</th><th>每请求成本$</th><th>估算月请求</th><th>官方月请求</th><th>偏差</th></tr>';
+  const body = items.map((it) => {
+    const diff = it.diff == null ? '—' : (it.diff * 100).toFixed(1) + '%';
+    return '<tr><td>' + esc(it.name) + '</td>' +
+      '<td>$' + (it.quota ?? '-') + '</td>' +
+      '<td>' + (it.price.in ?? '-') + '</td>' +
+      '<td>' + (it.price.out ?? '-') + '</td>' +
+      '<td>' + (it.price.cr ?? '-') + '</td>' +
+      '<td>' + (it.price.cw ?? '-') + '</td>' +
+      '<td>' + (it.cost != null ? it.cost.toFixed(6) : '-') + '</td>' +
+      '<td>' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</td>' +
+      '<td>' + (it.officialMonthly != null ? fmt(it.officialMonthly) : '-') + '</td>' +
+      '<td>' + diff + '</td></tr>';
+  }).join('');
+  t.innerHTML = head + body;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ========== 主流程 ==========
+function showError(msg) {
+  const el = $('#error');
+  el.style.display = 'block';
+  el.textContent = '在线抓取数据失败：' + msg + '（可用"立即刷新"重试，或检查网络）';
+}
+function setMeta(text) { $('#meta').textContent = text; }
+
+async function load() {
+  $('#refresh').disabled = true;
+  const hasCache = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+  if (hasCache) {
+    render(hasCache);
+    setMeta('正在使用本地缓存（抓取于 ' + new Date(hasCache.time).toLocaleString('zh-CN', { hour12: false }) + '），并尝试在线更新…');
+  }
+  try {
+    const mdx = await fetchMdx();
+    const data = parse(mdx);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    render(data);
+    setMeta('数据抓取于 ' + now() + ' · 共 ' + data.items.length + ' 个价格档位 · 来源：opencode.ai 官方文档');
+    $('#error').style.display = 'none';
+  } catch (e) {
+    if (!hasCache) {
+      showError(e.message);
+      setMeta('等待在线数据…');
+    } else {
+      setMeta('在线抓取失败，当前显示本地缓存。' + e.message);
+    }
+  } finally {
+    $('#refresh').disabled = false;
+  }
+}
+
+$('#refresh').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
