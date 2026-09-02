@@ -1,85 +1,48 @@
-# OpenCode Go · 每月预估请求数
+# Coding Agent 套餐 · 每月可用请求数
 
-一个零依赖的单文件 HTML 工具：打开页面即自动抓取 [OpenCode Go 官方文档](https://opencode.ai/docs/zh-cn/go/#usage-limits) 中"每 1M tokens 价格 + 每月使用额度"表格数据，根据单价与额度估算每个模型的**每月可用请求数**，绘制横向条状图（对数刻度，用量越大条越长）。
+零依赖单文件 HTML 工具集，打开页面即自动抓取各套餐官方文档数据，按模型绘制"每月可用请求数"横向条状图（对数刻度）。
 
-## 使用方式
+| 工具 | 页面 | 数据源 |
+| --- | --- | --- |
+| OpenCode Go 用量 | `index.html` | [opencode.ai/docs/go](https://opencode.ai/docs/zh-cn/go/#usage-limits) |
+| Command Code GOAT 用量 | `goat-limits.html` | [commandcode.ai/docs/plans/goat](https://commandcode.ai/docs/plans/goat) |
 
-- **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)
-- 本地使用：双击打开 `index.html` 即可，无需安装、无需服务器、无需手动刷新。
+- **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)（index.html 与 goat-limits.html 同目录，可互相跳转）
+- 本地使用：双击打开对应 HTML 即可，无需安装、无需服务器、无需手动刷新。
 
 - 打开页面时自动抓取最新数据；抓取失败自动回退到上一次成功的本地缓存（localStorage）。
 - 顶部"立即刷新"按钮可强制重新抓取。
-- 悬停任意条显示明细：单价、每月额度、每请求成本、token 请求模式、官方对照值。
+- 悬停任意条显示明细：单价、额度、每请求成本、token 请求模式、官方对照值。
 - 底部"查看原始数据明细"可展开完整计算过程表。
 
-## 数据来源与抓取机制
+---
 
-- 数据源为 GitHub 仓库 `anomalyco/opencode` 的 `dev` 分支原始 mdx（与 opencode.ai 文档页同源同步），备用源为 jsdelivr CDN。两者均返回 `Access-Control-Allow-Origin: *`，浏览器可直接跨域拉取。
-- 解析三块数据：
-  1. **价格 + 额度表**：每个价格档位一行（模型名、输入/输出/缓存读取/缓存写入单价、每月使用额度 $15/$30/$60）。
-  2. **请求模式表**：每个模型每次请求的 token 构成（输入/缓存/输出）。
-  3. **官方请求数表**：官方给出的"每月请求数"，用作对照。
+## OpenCode Go（index.html）
 
-## 估算原理
+抓取 [OpenCode Go 官方文档](https://opencode.ai/docs/zh-cn/go/#usage-limits) 的"价格 + 每月额度"表，估算每模型每月请求数。数据源为 GitHub 仓库 `anomalyco/opencode` 的 `dev` 分支原始 mdx（jsdelivr CDN 兜底）。
 
-```
-每请求成本 = (输入token×输入价 + 缓存token×缓存价 + 输出token×输出价) / 1,000,000
-每月请求数 = 每月使用额度 ÷ 每请求成本
-```
+## Command Code GOAT（goat-limits.html）
 
-此公式即 OpenCode Go 官方生成其"请求数估算表"所采用的逻辑。模型名匹配做了归一化（去空格/连字符/大小写）+ 最长前缀匹配，以兼容官方合并写法（如 `GLM-5.3/5.2/5.1`、`Kimi K2.7 Code`）。
+抓取 [GOAT Plan 官方文档](https://commandcode.ai/docs/plans/goat)（Next.js 预渲染 HTML，返回 `Access-Control-Allow-Origin: *`，浏览器可直接跨域拉取）。
 
-## 与官方数据的误差说明
+- 展示 **官方"每月请求数"表**（权威值），明细表另含官方 5 小时 / 周窗口请求数。
+- 每模型按各自 credits（$70/$60/$40/$33/$30/$20）计，非统一 $70。
+- 提供"自定义估算"面板：拖动 输入/缓存读取/输出 token 三个滑块，按
+  `每请求成本 = (输入×单价 + 缓存×缓存读价 + 输出×输出价) / 1M`、`月请求 = credits ÷ 成本`
+  实时重算。官方值本身即按 800 新输入 + 5 万缓存读取 + 各模型等效输出 token（已反演写入明细表）求得，偏差 <0.05%，因此不勾选时即为官方口径。
+- 容错：模型名归一化匹配；抓取失败回退 localStorage 缓存。
 
-误差有三类，含义不同：
-
-### 1. 高度吻合（多数模型，偏差 <1%）
-
-多数单档位模型按上述公式估算的结果与官方"每月请求数"几乎完全一致：
-
-| 模型 | 本工具估算 | 官方值 | 偏差 |
-| --- | --- | --- | --- |
-| MiMo V2.5 | 150,376 | 150,400 | -0.0% |
-| LongCat-2.0 | 57,176 | 57,200 | -0.0% |
-| MiniMax M2.7 | 16,949 | 17,000 | -0.3% |
-| GLM-5.3-Flash | 7,895 | 7,900 | -0.1% |
-
-这验证了公式与官方口径一致。
-
-### 2. 多档位模型的"偏差"（设计使然，非错误）
-
-Grok 4.6、GPT 5.6 Luna、Qwen3.7/3.6 Plus、DeepSeek V4 Pro/Flash/Vision Exp 在价格表中分多档（`≤/＞ 上下文长度` 或 `Peak/Off-Peak` 时段），**每个档位独立成条**（对应"表格里一行"）。各档单价不同 → 估算的请求数不同，而官方只给一个汇总值：
-
-| 档位 | 本工具估算 | 官方值 | 偏差 |
-| --- | --- | --- | --- |
-| DeepSeek V4 Flash (Off-Peak) | 37,788 | 37,800 | -0.0% |
-| DeepSeek V4 Flash (Peak) | 18,894 | 37,800 | -50.0% |
-
-观察：官方汇总值通常等于**较低档位**（Off-Peak、≤ 上下文区间）的结果，因为大部分请求走低档价。高档位价格翻倍 → 请求数减半，这是真实预期（贵档用得快）。此类条会标 ▲ 提示"与官方值偏差大"，见明细表可区分。
-
-### 3. 官方内部口径差异（无法完全复现）
-
-个别模型估算值与官方值存在较大偏差，且与档位无关，原因未公开：
-
-| 模型 | 本工具估算 | 官方值 | 偏差 |
-| --- | --- | --- | --- |
-| GLM-5.3 | 989 | 1,080 | -8.4% |
-| Kimi K2.7 Code | 4,968 | 6,750 | -26.4% |
-
-推测与官方实际使用的批量折扣、缓存命中率均值或请求模式细节（官方公布的 token 构成可能与其内部统计有出入）有关，属官方内部口径。**以官方"每月请求数"表为准**，本工具的估算值是"公开数据可推导出的理论值"。
-
-### 4. 官方未提供数据的模型
-
-MiniMax M2.5 在价格表中存在，但官方既未公布其请求模式，也未列入请求数表，因此显示 N/A，无法估算。
+---
 
 ## 文件说明
 
 ```
 opencode-go-limits/
-├── index.html         # 单文件工具，核心
+├── index.html         # OpenCode Go 工具
+├── goat-limits.html   # Command Code GOAT 工具
 ├── package.json       # 依赖（ssh2-sftp-client）与脚本（deploy / setup:hooks）
-├── mbtools/deploy.cjs # 自动部署脚本（读 .env，SFTP 上传 index.html）
-├── .githooks/pre-push # git hook：push 时自动触发部署
+├── mbtools/deploy.cjs # 自动部署脚本（读 .env，SFTP 上传根目录全部 *.html）
+├── .githooks/pre-push # git hook：push 时检测任意 *.html 变更并自动部署
 ├── .env.example       # 部署配置模板（真实配置填到 .env，不入库）
 ├── README.md          # 本文档
 └── devlog/            # 开发日志
@@ -87,7 +50,7 @@ opencode-go-limits/
 
 ## 自动部署（可选）
 
-本仓库带一套**本地 git hook 自动部署**方案：修改 `index.html` 后 `git push`，会自动 SFTP 上传到你的服务器，无需手动操作。
+本仓库带一套**本地 git hook 自动部署**方案：修改任一页面 HTML 后 `git push`，会自动 SFTP 上传全部根目录 `*.html` 到你的服务器，无需手动操作。
 
 ### 原理与安全设计
 
@@ -101,12 +64,12 @@ opencode-go-limits/
 2. 复制配置模板并填写真实值：`cp .env.example .env`（`DEPLOY_HOST` 服务器 IP、`DEPLOY_TARGET_DIR` 线上目录等）
 3. 注册 hook：`npm run setup:hooks`（即 `git config core.hooksPath .githooks`，仅本地生效，不入库）
 
-完成后，`git push` 时若 `index.html` 有变更会自动触发部署。
+完成后，`git push` 时若任一页面 HTML 有变更会自动触发部署。
 
 ### 行为约定
 
 - `.env` 不存在 → 跳过（fork 者不受影响）
-- `index.html` 无变更 → 跳过
+- 根目录 `*.html` 无变更 → 跳过
 - 部署失败 → **放行 push，仅告警**（exit 0），不会因部署问题阻塞你提交代码
 
 如需手动部署：`npm run deploy`。
