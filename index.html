@@ -25,6 +25,17 @@
     padding: 24px 20px 60px;
   }
   .wrap { max-width: 960px; margin: 0 auto; }
+  /* 双工具导航 */
+  .nav {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  .nav a {
+    font-size: 12px; color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px;
+  }
+  .nav a:hover { border-color: var(--muted); color: var(--text); }
+  .nav a.on { color: var(--text); border-color: var(--text); }
   header { margin-bottom: 20px; }
   .hd-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   h1 { font-size: 20px; margin: 0; }
@@ -97,6 +108,11 @@
 </head>
 <body>
 <div class="wrap">
+  <nav class="nav">
+    <a href="index.html" class="on">OpenCode Go 用量</a>
+    <a href="goat-limits.html">Command Code GOAT 用量</a>
+  </nav>
+
   <header>
     <div class="hd-top">
       <h1>OpenCode Go · 每月预估请求数</h1>
