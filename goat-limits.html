@@ -118,6 +118,15 @@
   }
   footer { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.8; }
   footer a { color: var(--muted); }
+  .gh-star {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 16px; padding: 6px 14px;
+    color: var(--text); font-size: 13px; font-weight: 600;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+    text-decoration: none; transition: border-color .15s;
+  }
+  .gh-star:hover { border-color: var(--warn); }
+  .gh-star svg { width: 16px; height: 16px; fill: var(--warn); }
   /* 双工具导航 */
   .nav {
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -192,6 +201,11 @@
     数据源：<a href="https://commandcode.ai/docs/plans/goat" target="_blank" rel="noopener">commandcode.ai 官方 GOAT Plan 文档</a>
     （窗口额度见 <a href="https://commandcode.ai/docs/resources/usage-limits" target="_blank" rel="noopener">Usage Limits</a>）。
     打开页面即自动抓取最新数据；抓取失败回退到本地缓存。
+    <br>
+    <a class="gh-star" href="https://github.com/mousebomb/opencode-go-limits" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>
+      去 GitHub 点亮 Star
+    </a>
   </footer>
 </div>
 
