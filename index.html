@@ -25,7 +25,7 @@
     padding: 24px 20px 60px;
   }
   .wrap { max-width: 960px; margin: 0 auto; }
-  /* 双工具导航 */
+  /* 双工具导航 + 语言切换 */
   .nav {
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
@@ -36,6 +36,14 @@
   }
   .nav a:hover { border-color: var(--muted); color: var(--text); }
   .nav a.on { color: var(--text); border-color: var(--text); }
+  .lang { margin-left: auto; display: flex; gap: 4px; }
+  .lang button {
+    font-size: 12px; color: var(--muted);
+    background: none; border: 1px solid var(--border); border-radius: 999px;
+    padding: 2px 10px; cursor: pointer;
+  }
+  .lang button:hover { border-color: var(--muted); color: var(--text); }
+  .lang button.on { color: var(--text); border-color: var(--text); }
   header { margin-bottom: 20px; }
   .hd-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   h1 { font-size: 20px; margin: 0; }
@@ -102,7 +110,8 @@
   #detail-table th, #detail-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: right; }
   #detail-table th:first-child, #detail-table td:first-child { text-align: left; }
   #detail-table th { background: var(--panel); color: var(--muted); font-weight: 600; }
-  footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.8; }
+  footer p { margin: 0; }
   footer a { color: var(--muted); }
   .gh-star {
     display: inline-flex; align-items: center; gap: 6px;
@@ -118,41 +127,44 @@
 <body>
 <div class="wrap">
   <nav class="nav">
-    <a href="index.html" class="on">OpenCode Go 用量</a>
-    <a href="goat-limits.html">Command Code GOAT 用量</a>
+    <a href="index.html" class="on"><span data-i18n="nav.opencode">OpenCode Go 用量</span></a>
+    <a href="goat-limits.html"><span data-i18n="nav.goat">Command Code GOAT 用量</span></a>
+    <span class="lang">
+      <button type="button" data-lang="zh">中文</button>
+      <button type="button" data-lang="en">English</button>
+    </span>
   </nav>
 
   <header>
     <div class="hd-top">
-      <h1>OpenCode Go · 每月预估请求数</h1>
-      <button id="refresh" type="button">立即刷新</button>
+      <h1 data-i18n="page.title">OpenCode Go · 每月预估请求数</h1>
+      <button id="refresh" type="button" data-i18n="btn.refresh">立即刷新</button>
     </div>
-    <p id="meta">正在获取最新数据…</p>
+    <p id="meta" data-i18n="meta.fetching">正在获取最新数据…</p>
   </header>
 
   <div id="error"></div>
   <div id="chart">
     <div class="row-head">
-      <span>模型</span>
-      <span>每月请求数（估算）</span>
-      <span>数量</span>
+      <span data-i18n="head.model">模型</span>
+      <span data-i18n="head.requests">每月请求数（估算）</span>
+      <span data-i18n="head.count">数量</span>
     </div>
     <div id="rows"></div>
     <div id="axis" class="axis"></div>
   </div>
 
   <details id="detail">
-    <summary>查看原始数据明细（单价 / 额度 / 估算过程）</summary>
+    <summary data-i18n="detail.summary">查看原始数据明细（单价 / 额度 / 估算过程）</summary>
     <table id="detail-table"></table>
   </details>
 
   <footer>
-    数据源：<a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai 官方文档</a>
-    （GitHub <code>anomalyco/opencode</code> 同步）。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。
-    <br>
+    <p data-i18n-html="footer.line1"></p>
+    <p data-i18n-html="footer.line2"></p>
     <a class="gh-star" href="https://github.com/mousebomb/opencode-go-limits" target="_blank" rel="noopener">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>
-      去 GitHub 点亮 Star
+      <span data-i18n="gh.star">去 GitHub 点亮 Star</span>
     </a>
   </footer>
 </div>
@@ -160,6 +172,93 @@
 <div id="tip" class="hidden"></div>
 
 <script>
+// ========== 多语言（轻量 i18n：自动检测 + 手动切换，localStorage 记忆） ==========
+const DICT = {
+  zh: {
+    'page.title': 'OpenCode Go · 每月预估请求数',
+    'nav.opencode': 'OpenCode Go 用量',
+    'nav.goat': 'Command Code GOAT 用量',
+    'btn.refresh': '立即刷新',
+    'meta.fetching': '正在获取最新数据…',
+    'meta.wait': '等待在线数据…',
+    'meta.ok': '数据抓取于 {time} · 共 {n} 个价格档位 · 来源：opencode.ai 官方文档',
+    'meta.cache': '正在使用本地缓存（抓取于 {time}），并尝试在线更新…',
+    'meta.fallback': '在线抓取失败，当前显示本地缓存。{msg}',
+    'err.fetch': '在线抓取失败：{msg}。可点“立即刷新”重试，或检查网络。',
+    'head.model': '模型',
+    'head.requests': '每月请求数（估算）',
+    'head.count': '数量',
+    'detail.summary': '查看原始数据明细（单价 / 额度 / 估算过程）',
+    'dt.model': '模型', 'dt.quota': '额度', 'dt.in': '输入$/M', 'dt.out': '输出$/M',
+    'dt.cr': '缓存读$/M', 'dt.cw': '缓存写$/M', 'dt.cost': '每请求成本$',
+    'dt.est': '估算月请求', 'dt.off': '官方月请求', 'dt.diff': '偏差',
+    'tip.est': '每月请求数（估算）',
+    'tip.est.na': '官方未提供请求模式，无法估算',
+    'tip.off': '官方对照值',
+    'tip.quota': '每月使用额度',
+    'tip.cost': '每请求成本',
+    'tip.diffLabel': '差异提示',
+    'tip.diff': '▲ 与官方值偏差 {pct}%',
+    'tip.pat': '请求模式',
+    'tip.pat.v': '{a} 输入 / {b} 缓存 / {c} 输出',
+    'tip.price': '单价',
+    'tip.p.line1': '输入 {i} · 输出 {o}',
+    'tip.p.line2': '缓存读 {c} · 缓存写 {w}',
+    'flag.dev': '计算值与官方值差异较大',
+    'gh.star': '去 GitHub 点亮 Star',
+    'footer.line1': '数据源：<a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai 官方文档</a>（GitHub <code>anomalyco/opencode</code> 同步）。',
+    'footer.line2': '打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
+  },
+  en: {
+    'page.title': 'OpenCode Go · Estimated requests / month',
+    'nav.opencode': 'OpenCode Go usage',
+    'nav.goat': 'Command Code GOAT usage',
+    'btn.refresh': 'Refresh',
+    'meta.fetching': 'Fetching latest data…',
+    'meta.wait': 'Waiting for online data…',
+    'meta.ok': 'Data fetched {time} · {n} pricing tiers · source: opencode.ai official docs',
+    'meta.cache': 'Showing cached data (fetched {time}) while updating…',
+    'meta.fallback': 'Online fetch failed; showing cached data. {msg}',
+    'err.fetch': 'Fetch failed: {msg}. Try “Refresh” or check your network.',
+    'head.model': 'Model',
+    'head.requests': 'Requests / month (est.)',
+    'head.count': 'Count',
+    'detail.summary': 'Raw data detail (price / quota / calculation)',
+    'dt.model': 'Model', 'dt.quota': 'Quota', 'dt.in': 'Input $/M', 'dt.out': 'Output $/M',
+    'dt.cr': 'Cache read $/M', 'dt.cw': 'Cache write $/M', 'dt.cost': 'Cost/req $',
+    'dt.est': 'Est. monthly', 'dt.off': 'Official monthly', 'dt.diff': 'Diff',
+    'tip.est': 'Est. requests / month',
+    'tip.est.na': 'No request pattern available to estimate',
+    'tip.off': 'Official value',
+    'tip.quota': 'Monthly quota',
+    'tip.cost': 'Cost per request',
+    'tip.diffLabel': 'Deviation',
+    'tip.diff': '▲ {pct}% off official',
+    'tip.pat': 'Request pattern',
+    'tip.pat.v': '{a} input / {b} cached / {c} output',
+    'tip.price': 'Unit price',
+    'tip.p.line1': 'Input {i} · Output {o}',
+    'tip.p.line2': 'Cache read {c} · Cache write {w}',
+    'flag.dev': 'Large deviation from the official estimate',
+    'gh.star': 'Star on GitHub',
+    'footer.line1': 'Source: <a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai official docs</a> (mirrored from GitHub <code>anomalyco/opencode</code>).',
+    'footer.line2': 'Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
+  },
+};
+// 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
+let LANG = (localStorage.getItem('ocgl-lang') || '').toLowerCase();
+if (!DICT[LANG]) LANG = ((navigator.language || '').toLowerCase().indexOf('zh') === 0) ? 'zh' : 'en';
+
+// t(key[, params])：取当前语言文案，替换 {xxx} 占位符；缺失回退 en → zh → key 本身
+const t = (key, p) => {
+  let s = DICT[LANG][key] ?? DICT.en[key] ?? DICT.zh[key] ?? key;
+  if (p) for (const k in p) s = s.split('{' + k + '}').join(String(p[k]));
+  return s;
+};
+const langLocale = () => (LANG === 'zh' ? 'zh-CN' : 'en-US');
+// 时间本地化格式
+const fmtDate = (iso) => new Date(iso).toLocaleString(langLocale(), { hour12: false });
+
 // ========== 常量与工具 ==========
 const SOURCES = [
   'https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx',
@@ -178,7 +277,30 @@ const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
 const fmt = (n) => Number(n).toLocaleString('en-US');
 // 缩写格式：100 → 100，1,000 → 1k，1,000,000 → 1M
 const fmtShort = (n) => (n >= 1e6 ? (n / 1e6) + 'M' : n >= 1e3 ? (n / 1e3) + 'k' : String(n));
-const now = () => new Date().toLocaleString('zh-CN', { hour12: false });
+
+// ========== 语言应用 ==========
+let lastData = null;   // 最近一次成功渲染的数据（用于切语言后重绘）
+let metaSt = null;     // 最近一次 meta 状态 { key, params }，用于切语言后重放
+
+// 渲染当前语言的 meta 文本
+function paintMeta() {
+  if (!metaSt) return;
+  const p = Object.assign({}, metaSt.params);
+  if (p.time) p.time = fmtDate(p.time);
+  $('#meta').textContent = t(metaSt.key, p);
+}
+function setMeta(key, params) { metaSt = { key, params }; paintMeta(); }
+
+// 应用当前语言：静态文案 / 动态表 + tooltip / meta / 切换按钮高亮
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.title = t('page.title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('.lang button').forEach((b) => b.classList.toggle('on', b.dataset.lang === LANG));
+  if (lastData) render(lastData); // 重建动态表格与 tooltip 文案
+  paintMeta();
+}
 
 // ========== 抓取 ==========
 async function fetchMdx() {
@@ -311,6 +433,7 @@ function parse(mdx) {
 
 // ========== 渲染 ==========
 function render(data) {
+  lastData = data;
   const { items } = data;
   const valids = items.filter((i) => i.monthly != null).sort((a, b) => a.monthly - b.monthly);
   const invalids = items.filter((i) => i.monthly == null);
@@ -328,7 +451,7 @@ function render(data) {
     const row = document.createElement('div');
     row.className = 'row';
     const flag = it.diff != null && Math.abs(it.diff) > 0.1
-      ? '<span class="flag" title="计算值与官方值差异较大">▲</span>' : '';
+      ? '<span class="flag" title="' + t('flag.dev') + '">▲</span>' : '';
     row.innerHTML =
       '<div class="row-name">' + esc(it.name) + flag + '</div>' +
       '<div class="track"><div class="bar' + (it.monthly == null ? ' na' : '') + '" style="width:' + (it.monthly == null ? 0 : x(it.monthly)) + '%"></div></div>' +
@@ -365,18 +488,18 @@ function bindTip(row, it) {
   row.addEventListener('mousemove', (e) => {
     const tip = $('#tip');
     const lines = [
-      ['每月请求数（估算）', it.monthly != null ? fmt(Math.round(it.monthly)) : '官方未提供请求模式，无法估算'],
-      ['官方对照值', it.officialMonthly != null ? fmt(it.officialMonthly) : '—'],
-      ['每月使用额度', it.quota != null ? '$' + it.quota : '—'],
-      ['每请求成本', it.cost != null ? '$' + it.cost.toFixed(6) : '—'],
+      [t('tip.est'), it.monthly != null ? fmt(Math.round(it.monthly)) : t('tip.est.na')],
+      [t('tip.off'), it.officialMonthly != null ? fmt(it.officialMonthly) : '—'],
+      [t('tip.quota'), it.quota != null ? '$' + it.quota : '—'],
+      [t('tip.cost'), it.cost != null ? '$' + it.cost.toFixed(6) : '—'],
     ];
     if (it.diff != null && Math.abs(it.diff) > 0.1) {
-      lines.push(['差异提示', '▲ 与官方值偏差 ' + (it.diff * 100).toFixed(1) + '%', true]);
+      lines.push([t('tip.diffLabel'), t('tip.diff', { pct: (it.diff * 100).toFixed(1) }), true]);
     }
-    if (it.pat) lines.push(['请求模式', it.pat.in + ' 输入 / ' + it.pat.cache + ' 缓存 / ' + it.pat.out + ' 输出']);
+    if (it.pat) lines.push([t('tip.pat'), t('tip.pat.v', { a: it.pat.in, b: it.pat.cache, c: it.pat.out })]);
     lines.push(
-      ['单价', '输入 $' + (it.price.in ?? '-') + ' · 输出 $' + (it.price.out ?? '-')],
-      ['', '缓存读 $' + (it.price.cr ?? '-') + ' · 缓存写 $' + (it.price.cw ?? '-')],
+      [t('tip.price'), t('tip.p.line1', { i: '$' + (it.price.in ?? '-'), o: '$' + (it.price.out ?? '-') })],
+      ['', t('tip.p.line2', { c: '$' + (it.price.cr ?? '-'), w: '$' + (it.price.cw ?? '-') })],
     );
     tip.innerHTML =
       '<div class="t-name">' + esc(it.name) + '</div>' +
@@ -396,8 +519,9 @@ function bindTip(row, it) {
 
 // 明细表
 function renderDetailTable(items) {
-  const t = $('#detail-table');
-  const head = '<tr><th>模型</th><th>额度</th><th>输入$/M</th><th>输出$/M</th><th>缓存读$/M</th><th>缓存写$/M</th><th>每请求成本$</th><th>估算月请求</th><th>官方月请求</th><th>偏差</th></tr>';
+  const t2 = $('#detail-table');
+  const cols = ['dt.model', 'dt.quota', 'dt.in', 'dt.out', 'dt.cr', 'dt.cw', 'dt.cost', 'dt.est', 'dt.off', 'dt.diff'];
+  const head = '<tr>' + cols.map((c) => '<th>' + t(c) + '</th>').join('') + '</tr>';
   const body = items.map((it) => {
     const diff = it.diff == null ? '—' : (it.diff * 100).toFixed(1) + '%';
     return '<tr><td>' + esc(it.name) + '</td>' +
@@ -411,7 +535,7 @@ function renderDetailTable(items) {
       '<td>' + (it.officialMonthly != null ? fmt(it.officialMonthly) : '-') + '</td>' +
       '<td>' + diff + '</td></tr>';
   }).join('');
-  t.innerHTML = head + body;
+  t2.innerHTML = head + body;
 }
 
 function esc(s) {
@@ -422,37 +546,44 @@ function esc(s) {
 function showError(msg) {
   const el = $('#error');
   el.style.display = 'block';
-  el.textContent = '在线抓取数据失败：' + msg + '（可用"立即刷新"重试，或检查网络）';
+  el.textContent = t('err.fetch', { msg });
 }
-function setMeta(text) { $('#meta').textContent = text; }
 
 async function load() {
   $('#refresh').disabled = true;
   const hasCache = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
   if (hasCache) {
     render(hasCache);
-    setMeta('正在使用本地缓存（抓取于 ' + new Date(hasCache.time).toLocaleString('zh-CN', { hour12: false }) + '），并尝试在线更新…');
+    setMeta('meta.cache', { time: hasCache.time });
   }
   try {
     const mdx = await fetchMdx();
     const data = parse(mdx);
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     render(data);
-    setMeta('数据抓取于 ' + now() + ' · 共 ' + data.items.length + ' 个价格档位 · 来源：opencode.ai 官方文档');
+    setMeta('meta.ok', { time: data.time, n: data.items.length });
     $('#error').style.display = 'none';
   } catch (e) {
     if (!hasCache) {
       showError(e.message);
-      setMeta('等待在线数据…');
+      setMeta('meta.wait', {});
     } else {
-      setMeta('在线抓取失败，当前显示本地缓存。' + e.message);
+      setMeta('meta.fallback', { msg: e.message });
     }
   } finally {
     $('#refresh').disabled = false;
   }
 }
 
+// ========== 初始化 ==========
+applyLang();
 $('#refresh').addEventListener('click', load);
+// 语言切换按钮：更新记忆并整页重画
+document.querySelectorAll('.lang button').forEach((b) => b.addEventListener('click', () => {
+  LANG = b.dataset.lang;
+  localStorage.setItem('ocgl-lang', LANG);
+  applyLang();
+}));
 load();
 </script>
 <script defer src="/api/stats/t.js"></script>

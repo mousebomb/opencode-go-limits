@@ -117,6 +117,7 @@
     border: 1px solid var(--border); color: var(--muted); margin-left: 6px; vertical-align: 1px;
   }
   footer { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.8; }
+  footer p { margin: 0; }
   footer a { color: var(--muted); }
   .gh-star {
     display: inline-flex; align-items: center; gap: 6px;
@@ -127,7 +128,7 @@
   }
   .gh-star:hover { border-color: var(--warn); }
   .gh-star svg { width: 16px; height: 16px; fill: var(--warn); }
-  /* 双工具导航 */
+  /* 双工具导航 + 语言切换 */
   .nav {
     display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
@@ -138,73 +139,86 @@
   }
   .nav a:hover { border-color: var(--muted); color: var(--text); }
   .nav a.on { color: var(--text); border-color: var(--text); }
+  .lang { margin-left: auto; display: flex; gap: 4px; }
+  .lang button {
+    font-size: 12px; color: var(--muted);
+    background: none; border: 1px solid var(--border); border-radius: 999px;
+    padding: 2px 10px; cursor: pointer;
+  }
+  .lang button:hover { border-color: var(--muted); color: var(--text); }
+  .lang button.on { color: var(--text); border-color: var(--text); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav class="nav">
-    <a href="index.html">OpenCode Go 用量</a>
-    <a href="goat-limits.html" class="on">Command Code GOAT 用量</a>
+    <a href="index.html"><span data-i18n="nav.opencode">OpenCode Go 用量</span></a>
+    <a href="goat-limits.html" class="on"><span data-i18n="nav.goat">Command Code GOAT 用量</span></a>
+    <span class="lang">
+      <button type="button" data-lang="zh">中文</button>
+      <button type="button" data-lang="en">English</button>
+    </span>
   </nav>
 
   <header>
     <div class="hd-top">
-      <h1>Command Code GOAT <span class="badge">GOAT</span> · 每月可用请求数</h1>
-      <button id="refresh" type="button">立即刷新</button>
+      <h1 data-i18n="page.h1">Command Code GOAT <span class="badge">GOAT</span> · 每月可用请求数</h1>
+      <button id="refresh" type="button" data-i18n="btn.refresh">立即刷新</button>
     </div>
-    <p class="sub">$10/月 · 每模型独立月度 credits · 另有滚动窗口 $14/5 小时、$35/周</p>
-    <p id="meta">正在获取最新数据…</p>
+    <p class="sub" data-i18n="page.sub">$10/月 · 每模型独立月度 credits · 另有滚动窗口 $14/5 小时、$35/周</p>
+    <p id="meta" data-i18n="meta.fetching">正在获取最新数据…</p>
   </header>
 
   <div id="error"></div>
 
   <div id="chart">
     <div class="row-head">
-      <span>模型 <span class="pill">官方估算值</span></span>
-      <span>每月请求数</span>
-      <span>数量</span>
+      <span>
+        <span data-i18n="head.model">模型</span>
+        <span class="pill" data-i18n="head.official">官方估算值</span>
+      </span>
+      <span data-i18n="head.requests">每月请求数</span>
+      <span data-i18n="head.count">数量</span>
     </div>
     <div id="rows"></div>
     <div id="axis" class="axis"></div>
   </div>
 
   <section id="recalc">
-    <h3>按你的会话模式重算</h3>
-    <p class="hint">官方估算假设约 800 新输入 / 5 万缓存读取 / 每模型 125~200 输出 token。勾选后按你的会话模式实时重算；官方值本身即按该假设求得（偏差 &lt;0.05%），所以不勾选时就是官方权威值。</p>
+    <h3 data-i18n="recalc.title">按你的会话模式重算</h3>
+    <p class="hint" data-i18n="recalc.hint">官方估算假设约 800 新输入 / 5 万缓存读取 / 每模型 125~200 输出 token。勾选后按你的会话模式实时重算；官方值本身即按该假设求得（偏差 &lt;0.05%），所以不勾选时就是官方权威值。</p>
     <label style="font-size: 13px; display:flex; gap:8px; align-items:center; margin-bottom: 12px;">
       <input type="checkbox" id="customOn">
-      <span>启用自定义估算（按下方 token 假设）</span>
+      <span data-i18n="recalc.enable">启用自定义估算（按下方 token 假设）</span>
     </label>
     <div class="sliders">
       <div class="sld">
-        <label>每次请求新输入 <output id="ovIn">800</output></label>
+        <label><span data-i18n="recalc.newInput">每次请求新输入</span> <output id="ovIn">800</output></label>
         <input type="range" id="in" min="0" max="8000" step="50" value="800">
       </div>
       <div class="sld">
-        <label>每次请求缓存读取 <output id="ovCache">50,000</output></label>
+        <label><span data-i18n="recalc.cache">每次请求缓存读取</span> <output id="ovCache">50,000</output></label>
         <input type="range" id="cache" min="0" max="200000" step="1000" value="50000">
       </div>
       <div class="sld">
-        <label>每次请求输出 token <output id="ovOut">150</output></label>
+        <label><span data-i18n="recalc.out">每次请求输出 token</span> <output id="ovOut">150</output></label>
         <input type="range" id="out" min="50" max="400" step="1" value="150">
       </div>
     </div>
-    <p class="est-note">每个模型在官方估算里的等效输出 token 不同（已反演并存入明细表"默认输出tk"列）；拖动滑块仅影响<b>自定义模式</b>下的条形图。</p>
+    <p class="est-note" data-i18n="recalc.note">每个模型在官方估算里的等效输出 token 不同（已反演并存入明细表“默认输出tk”列）；拖动滑块仅影响<b>自定义模式</b>下的条形图。</p>
   </section>
 
   <details id="detail">
-    <summary>查看原始数据明细（单价 / credits / 官方三窗口请求数）</summary>
+    <summary data-i18n="detail.summary">查看原始数据明细（单价 / credits / 官方三窗口请求数）</summary>
     <table id="detail-table"></table>
   </details>
 
   <footer>
-    数据源：<a href="https://commandcode.ai/docs/plans/goat" target="_blank" rel="noopener">commandcode.ai 官方 GOAT Plan 文档</a>
-    （窗口额度见 <a href="https://commandcode.ai/docs/resources/usage-limits" target="_blank" rel="noopener">Usage Limits</a>）。
-    打开页面即自动抓取最新数据；抓取失败回退到本地缓存。
-    <br>
+    <p data-i18n-html="footer.line1"></p>
+    <p data-i18n-html="footer.line2"></p>
     <a class="gh-star" href="https://github.com/mousebomb/opencode-go-limits" target="_blank" rel="noopener">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"/></svg>
-      去 GitHub 点亮 Star
+      <span data-i18n="gh.star">去 GitHub 点亮 Star</span>
     </a>
   </footer>
 </div>
@@ -212,6 +226,117 @@
 <div id="tip" class="hidden"></div>
 
 <script>
+// ========== 多语言（轻量 i18n：自动检测 + 手动切换，localStorage 记忆） ==========
+const DICT = {
+  zh: {
+    'page.title': 'Command Code GOAT · 每月可用请求数',
+    'page.h1': 'Command Code GOAT <span class="badge">GOAT</span> · 每月可用请求数',
+    'page.sub': '$10/月 · 每模型独立月度 credits · 另有滚动窗口 $14/5 小时、$35/周',
+    'nav.opencode': 'OpenCode Go 用量',
+    'nav.goat': 'Command Code GOAT 用量',
+    'btn.refresh': '立即刷新',
+    'meta.fetching': '正在获取最新数据…',
+    'meta.wait': '等待在线数据…',
+    'meta.ok': '数据抓取于 {time} · 共 {n} 个模型 · 来源：commandcode.ai 官方文档',
+    'meta.cache': '正在使用本地缓存（抓取于 {time}），并尝试在线更新…',
+    'meta.fallback': '在线抓取失败，当前显示本地缓存。{msg}',
+    'err.fetch': '在线抓取失败：{msg}。可点“立即刷新”重试，或检查网络。',
+    'head.model': '模型',
+    'head.official': '官方估算值',
+    'head.requests': '每月请求数',
+    'head.count': '数量',
+    'recalc.title': '按你的会话模式重算',
+    'recalc.hint': '官方估算假设约 800 新输入 / 5 万缓存读取 / 每模型 125~200 输出 token。勾选后按你的会话模式实时重算；官方值本身即按该假设求得（偏差 <0.05%），所以不勾选时就是官方权威值。',
+    'recalc.enable': '启用自定义估算（按下方 token 假设）',
+    'recalc.newInput': '每次请求新输入',
+    'recalc.cache': '每次请求缓存读取',
+    'recalc.out': '每次请求输出 token',
+    'recalc.note': '每个模型在官方估算里的等效输出 token 不同（已反演并存入明细表“默认输出tk”列）；拖动滑块仅影响<b>自定义模式</b>下的条形图。',
+    'detail.summary': '查看原始数据明细（单价 / credits / 官方三窗口请求数）',
+    'dt.model': '模型', 'dt.cred': 'credits/月', 'dt.in': '输入$/M', 'dt.out': '输出$/M',
+    'dt.cr': '缓存读$/M', 'dt.cw': '缓存写$/M', 'dt.h5': '5小时官方', 'dt.wk': '周官方',
+    'dt.mo': '月官方', 'dt.defout': '默认输出tk',
+    'tip.mo': '每月请求数',
+    'tip.mo.na': '官方未提供单价/credits，无法估算',
+    'tip.off': '官方对照值',
+    'tip.cred': '月度 credits',
+    'tip.cost': '每请求成本',
+    'tip.price': '单价',
+    'tip.p.line1': '输入 {i} · 输出 {o}',
+    'tip.p.line2': '缓存读 {c} · 缓存写 {w}',
+    'tip.h5': '5 小时窗口',
+    'tip.h5.v': '{n} 次（额度 $14）',
+    'tip.wk': '周窗口',
+    'tip.wk.v': '{n} 次（额度 $35）',
+    'tip.hint': '提示',
+    'tip.hint.v': '▲ 该模型官方口径输出 ≈ {n} token，当前 {cur}',
+    'flag.na': '缺少单价/credits，无法估算',
+    'gh.star': '去 GitHub 点亮 Star',
+    'footer.line1': '数据源：<a href="https://commandcode.ai/docs/plans/goat" target="_blank" rel="noopener">commandcode.ai 官方 GOAT Plan 文档</a>（窗口额度见 <a href="https://commandcode.ai/docs/resources/usage-limits" target="_blank" rel="noopener">Usage Limits</a>）。',
+    'footer.line2': '打开页面即自动抓取最新数据；抓取失败回退到本地缓存。',
+  },
+  en: {
+    'page.title': 'Command Code GOAT · Monthly requests available',
+    'page.h1': 'Command Code GOAT <span class="badge">GOAT</span> · Monthly requests available',
+    'page.sub': '$10/mo · per-model monthly credits · plus rolling $14/5h, $35/wk windows',
+    'nav.opencode': 'OpenCode Go usage',
+    'nav.goat': 'Command Code GOAT usage',
+    'btn.refresh': 'Refresh',
+    'meta.fetching': 'Fetching latest data…',
+    'meta.wait': 'Waiting for online data…',
+    'meta.ok': 'Data fetched {time} · {n} models · source: commandcode.ai official docs',
+    'meta.cache': 'Showing cached data (fetched {time}) while updating…',
+    'meta.fallback': 'Online fetch failed; showing cached data. {msg}',
+    'err.fetch': 'Fetch failed: {msg}. Try “Refresh” or check your network.',
+    'head.model': 'Model',
+    'head.official': 'official est.',
+    'head.requests': 'Requests / month',
+    'head.count': 'Count',
+    'recalc.title': 'Recalculate for your session pattern',
+    'recalc.hint': 'The official estimate assumes ~800 new input / 50k cached reads / 125–200 output tokens per model. Tick the box to recalculate live from your own token assumptions; the official values are themselves computed from those assumptions (diff <0.05%), so with the box unticked you get the authoritative numbers.',
+    'recalc.enable': 'Enable custom estimation (from the token sliders below)',
+    'recalc.newInput': 'New input per request',
+    'recalc.cache': 'Cached reads per request',
+    'recalc.out': 'Output tokens per request',
+    'recalc.note': 'Each model uses a different equivalent output-token count in the official estimate (derived and stored in the “default out tk” column); the sliders only affect the bars in <b>custom mode</b>.',
+    'detail.summary': 'Raw data detail (price / credits / official 3-window counts)',
+    'dt.model': 'Model', 'dt.cred': 'Credits/mo', 'dt.in': 'Input $/M', 'dt.out': 'Output $/M',
+    'dt.cr': 'Cache read $/M', 'dt.cw': 'Cache write $/M', 'dt.h5': 'Official 5h', 'dt.wk': 'Official week',
+    'dt.mo': 'Official mo', 'dt.defout': 'Default out tk',
+    'tip.mo': 'Requests / month',
+    'tip.mo.na': 'No price/credits to estimate from',
+    'tip.off': 'Official value',
+    'tip.cred': 'Monthly credits',
+    'tip.cost': 'Cost per request',
+    'tip.price': 'Unit price',
+    'tip.p.line1': 'Input {i} · Output {o}',
+    'tip.p.line2': 'Cache read {c} · Cache write {w}',
+    'tip.h5': '5-hour window',
+    'tip.h5.v': '{n} requests ($14 quota)',
+    'tip.wk': 'Weekly window',
+    'tip.wk.v': '{n} requests ($35 quota)',
+    'tip.hint': 'Hint',
+    'tip.hint.v': '▲ Official-caliber output for this model ≈ {n} tokens; current {cur}',
+    'flag.na': 'Missing price/credits, cannot estimate',
+    'gh.star': 'Star on GitHub',
+    'footer.line1': 'Source: <a href="https://commandcode.ai/docs/plans/goat" target="_blank" rel="noopener">commandcode.ai official GOAT Plan docs</a> (window quotas: <a href="https://commandcode.ai/docs/resources/usage-limits" target="_blank" rel="noopener">Usage Limits</a>).',
+    'footer.line2': 'Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
+  },
+};
+// 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
+let LANG = (localStorage.getItem('ocgl-lang') || '').toLowerCase();
+if (!DICT[LANG]) LANG = ((navigator.language || '').toLowerCase().indexOf('zh') === 0) ? 'zh' : 'en';
+
+// t(key[, params])：取当前语言文案，替换 {xxx} 占位符；缺失回退 en → zh → key 本身
+const t = (key, p) => {
+  let s = DICT[LANG][key] ?? DICT.en[key] ?? DICT.zh[key] ?? key;
+  if (p) for (const k in p) s = s.split('{' + k + '}').join(String(p[k]));
+  return s;
+};
+const langLocale = () => (LANG === 'zh' ? 'zh-CN' : 'en-US');
+// 时间本地化格式
+const fmtDate = (iso) => new Date(iso).toLocaleString(langLocale(), { hour12: false });
+
 // ========== 常量 ==========
 const SOURCES = [
   'https://commandcode.ai/docs/plans/goat',
@@ -227,9 +352,30 @@ const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
 const base = (s) => s.replace(/\s*\(.*?\)\s*$/, '').trim();
 const fmt = (n) => Number(n).toLocaleString('en-US');
 const fmtShort = (n) => (n >= 1e6 ? (n / 1e6) + 'M' : n >= 1e3 ? (n / 1e3) + 'k' : String(n));
-const now = () => new Date().toLocaleString('zh-CN', { hour12: false });
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ========== 语言应用 ==========
+let current = null;   // 当前解析结果（切语言后重绘数据区）
+let metaSt = null;    // 最近一次 meta 状态 { key, params }，用于切语言后重放
+
+function paintMeta() {
+  if (!metaSt) return;
+  const p = Object.assign({}, metaSt.params);
+  if (p.time) p.time = fmtDate(p.time);
+  $('#meta').textContent = t(metaSt.key, p);
+}
+function setMeta(key, params) { metaSt = { key, params }; paintMeta(); }
+
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.title = t('page.title').replace(/<[^>]*>/g, ''); // 标题剥离 HTML 标签
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.innerHTML = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('.lang button').forEach((b) => b.classList.toggle('on', b.dataset.lang === LANG));
+  if (current) render();
+  paintMeta();
 }
 
 // ========== 抓取 ==========
@@ -333,7 +479,6 @@ function parse(html) {
 }
 
 // ========== 渲染 ==========
-let current = null;   // 当前解析结果
 const sliders = { in: 800, cache: 50000, out: 150 };
 
 // 是否自定义模式（勾选框决定，而非"滑过就算"）
@@ -371,7 +516,7 @@ function render() {
     const row = document.createElement('div');
     row.className = 'row';
     const flag = src === 'na'
-      ? '<span class="flag" title="缺少单价/credits，无法估算">▲</span>' : '';
+      ? '<span class="flag" title="' + t('flag.na') + '">▲</span>' : '';
     row.innerHTML =
       '<div class="row-name">' + esc(it.name) + flag + '</div>' +
       '<div class="track"><div class="bar' + (val == null ? ' na' : '') + '" style="width:' + (val == null ? 0 : xpos(val)) + '%"></div></div>' +
@@ -415,21 +560,21 @@ function bindTip(row, it, src) {
     const tip = $('#tip');
     const val = monthlyFor(it);
     const lines = [
-      ['每月请求数', val.value != null ? fmt(Math.round(val.value)) : '官方未提供单价/credits，无法估算'],
-      ['官方对照值', fmt(it.reqMonth)],
-      ['月度 credits', it.credits != null ? '$' + it.credits : '—'],
-      ['每请求成本', costPer(it) != null ? '$' + costPer(it).toFixed(6) : '—'],
+      [t('tip.mo'), val.value != null ? fmt(Math.round(val.value)) : t('tip.mo.na')],
+      [t('tip.off'), fmt(it.reqMonth)],
+      [t('tip.cred'), it.credits != null ? '$' + it.credits : '—'],
+      [t('tip.cost'), costPer(it) != null ? '$' + costPer(it).toFixed(6) : '—'],
     ];
     if (it.price.in != null) lines.push(
-      ['单价', '输入 $' + it.price.in + ' · 输出 $' + it.price.out],
-      ['', '缓存读 $' + it.price.cr + ' · 缓存写 $' + (it.price.cw ?? '-')],
+      [t('tip.price'), t('tip.p.line1', { i: '$' + it.price.in, o: '$' + it.price.out })],
+      ['', t('tip.p.line2', { c: '$' + it.price.cr, w: '$' + (it.price.cw ?? '-') })],
     );
     lines.push(
-      ['5 小时窗口', fmt(it.req5h) + ' 次（额度 $14）'],
-      ['周窗口', fmt(it.reqWeek) + ' 次（额度 $35）'],
+      [t('tip.h5'), t('tip.h5.v', { n: fmt(it.req5h) })],
+      [t('tip.wk'), t('tip.wk.v', { n: fmt(it.reqWeek) })],
     );
     if (customOn() && val.value != null && it.defaultOut && Math.abs(it.defaultOut - sliders.out) > 2) {
-      lines.push(['提示', '▲ 该模型官方口径输出 ≈ ' + it.defaultOut + ' token，当前 ' + sliders.out, true]);
+      lines.push([t('tip.hint'), t('tip.hint.v', { n: it.defaultOut, cur: sliders.out }), true]);
     }
     tip.innerHTML =
       '<div class="t-name">' + esc(it.name) + '</div>' +
@@ -448,8 +593,9 @@ function bindTip(row, it, src) {
 
 // 明细表
 function renderDetailTable(items) {
-  const t = $('#detail-table');
-  const head = '<tr><th>模型</th><th>credits/月</th><th>输入$/M</th><th>输出$/M</th><th>缓存读$/M</th><th>缓存写$/M</th><th>5小时官方</th><th>周官方</th><th>月官方</th><th>默认输出tk</th></tr>';
+  const t2 = $('#detail-table');
+  const cols = ['dt.model', 'dt.cred', 'dt.in', 'dt.out', 'dt.cr', 'dt.cw', 'dt.h5', 'dt.wk', 'dt.mo', 'dt.defout'];
+  const head = '<tr>' + cols.map((c) => '<th>' + t(c) + '</th>').join('') + '</tr>';
   const body = items.map((it) =>
     '<tr><td>' + esc(it.name) + '</td>' +
     '<td>' + (it.credits != null ? '$' + it.credits : '-') + '</td>' +
@@ -461,16 +607,15 @@ function renderDetailTable(items) {
     '<td>' + fmt(it.reqWeek) + '</td>' +
     '<td>' + fmt(it.reqMonth) + '</td>' +
     '<td>' + it.defaultOut + '</td></tr>').join('');
-  t.innerHTML = head + body;
+  t2.innerHTML = head + body;
 }
 
 // ========== 主流程 ==========
 function showError(msg) {
   const el = $('#error');
   el.style.display = 'block';
-  el.textContent = '在线抓取数据失败：' + msg + '（可用"立即刷新"重试，或检查网络）';
+  el.textContent = t('err.fetch', { msg });
 }
-function setMeta(t) { $('#meta').textContent = t; }
 
 async function load() {
   $('#refresh').disabled = true;
@@ -478,7 +623,7 @@ async function load() {
   if (hasCache) {
     current = hasCache;
     render();
-    setMeta('正在使用本地缓存（抓取于 ' + new Date(hasCache.time).toLocaleString('zh-CN', { hour12: false }) + '），并尝试在线更新…');
+    setMeta('meta.cache', { time: hasCache.time });
   }
   try {
     const html = await fetchHtml();
@@ -486,14 +631,14 @@ async function load() {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     current = data;
     render();
-    setMeta('数据抓取于 ' + now() + ' · 共 ' + data.items.length + ' 个模型 · 来源：commandcode.ai 官方文档');
+    setMeta('meta.ok', { time: data.time, n: data.items.length });
     $('#error').style.display = 'none';
   } catch (e) {
     if (!hasCache) {
       showError(e.message);
-      setMeta('等待在线数据…');
+      setMeta('meta.wait', {});
     } else {
-      setMeta('在线抓取失败，当前显示本地缓存。' + e.message);
+      setMeta('meta.fallback', { msg: e.message });
     }
   } finally {
     $('#refresh').disabled = false;
@@ -517,7 +662,15 @@ bindSlider('#cache', '#ovCache', 'cache', (v) => v.toLocaleString('en-US'));
 bindSlider('#out', '#ovOut', 'out', (v) => v.toLocaleString('en-US'));
 $('#customOn').addEventListener('change', render);
 
+// ========== 初始化 ==========
+applyLang();
 $('#refresh').addEventListener('click', load);
+// 语言切换按钮：更新记忆并整页重画
+document.querySelectorAll('.lang button').forEach((b) => b.addEventListener('click', () => {
+  LANG = b.dataset.lang;
+  localStorage.setItem('ocgl-lang', LANG);
+  applyLang();
+}));
 load();
 </script>
 <script defer src="/api/stats/t.js"></script>
