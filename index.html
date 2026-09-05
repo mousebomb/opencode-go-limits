@@ -202,9 +202,9 @@ function parseTable(src, anchor) {
   return rows.slice(1); // 去掉表头行
 }
 
-// 解析"预估值基于观察到的请求模式"列表，返回 [{ expr, in, cache, out }]
+// 解析"预估值采用以下每次请求的 token 数量"列表，返回 [{ expr, in, cache, out }]
 function parsePatterns(src) {
-  const seg = section(src, '预估值基于观察到的请求模式：');
+  const seg = section(src, '预估值采用以下每次请求的 token 数量；');
   if (!seg) return [];
   const end = seg.indexOf('预估值还基于以下每 1M tokens 的价格');
   const body = end >= 0 ? seg.slice(0, end) : seg;
@@ -220,13 +220,16 @@ function parsePatterns(src) {
   return out;
 }
 
-// 在模式匹配表中查找"最具体的匹配"：模式名是基准名的前缀，取最长（如 "Kimi K2.7 Code" 匹配 "Kimi K2.7"）
+// 在模式匹配表中查找"最具体的匹配"：模式名是基准名的前缀，取最长
+// （如 "Kimi K2.7 Code" 匹配 "Kimi K2.7"）；若基准名反为模式的子串
+// 则取最短（如 "MiMo V2.5 Pro" 不误配 "MiMo V2.5"）
 function findPattern(patMap, baseNorm) {
-  let best = null, bestLen = 0;
+  let best = null, bestLen = 0, prefixFallback = null, fallbackLen = Infinity;
   for (const [key, p] of patMap) {
     if (baseNorm.startsWith(key) && key.length > bestLen) { best = p; bestLen = key.length; }
+    else if (key.startsWith(baseNorm) && key.length < fallbackLen) { prefixFallback = p; fallbackLen = key.length; }
   }
-  return best;
+  return best || prefixFallback;
 }
 
 // 展开合并写法的模型名，如 "GLM-5.3/5.2/5.1" → ["GLM-5.3","GLM-5.2","GLM-5.1"]
