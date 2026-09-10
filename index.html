@@ -452,13 +452,12 @@ function parse(mdx) {
 function render(data) {
   lastData = data;
   const { items } = data;
-  const valids = items.filter((i) => i.monthly != null).sort((a, b) => a.monthly - b.monthly);
-  const invalids = items.filter((i) => i.monthly == null);
-  const ordered = [...valids, ...invalids];
+  // 只展示可估算的档位；官方未提供请求模式、无法估算的模型（如 MiniMax M2.5）直接隐藏
+  const ordered = items.filter((i) => i.monthly != null).sort((a, b) => a.monthly - b.monthly);
 
   // 对数刻度范围（避免线性刻度下小值不可见）
-  const lo = valids.length ? Math.log10(Math.min(...valids.map((i) => i.monthly))) : 0;
-  const hi = valids.length ? Math.log10(Math.max(...valids.map((i) => i.monthly))) : 1;
+  const lo = ordered.length ? Math.log10(Math.min(...ordered.map((i) => i.monthly))) : 0;
+  const hi = ordered.length ? Math.log10(Math.max(...ordered.map((i) => i.monthly))) : 1;
   const span = hi - lo || 1;
   const x = (v) => Math.max(0, Math.min(100, ((Math.log10(v) - lo) / span) * 100));
 
@@ -497,7 +496,7 @@ function render(data) {
     axis.appendChild(label);
   }
 
-  renderDetailTable(items);
+  renderDetailTable(items.filter((i) => i.monthly != null));
 }
 
 // tooltip：悬停显示单价/额度/估算明细
