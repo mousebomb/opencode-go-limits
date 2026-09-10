@@ -269,8 +269,8 @@ const $ = (sel) => document.querySelector(sel);
 
 // 去掉千分位并转数字
 const num = (s) => parseFloat(String(s).replace(/,/g, ''));
-// 金额字符串（如 "$2.00" / "-"）转数字，'-' 返回 null
-const money = (s) => (s === '-' || s == null ? null : parseFloat(s.replace('$', '')));
+// 金额字符串（如 "$2.00"）转数字，支持 markdown 加粗（**$60**），'-'/空 返回 null
+const money = (s) => (s === '-' || s == null ? null : parseFloat(s.replace(/[$*\s]/g, '')));
 // 模型名归一化：小写 + 去掉空格/连字符，用于模糊匹配
 const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
 // 千分位格式
@@ -316,10 +316,20 @@ async function fetchMdx() {
 }
 
 // ========== mdx 解析 ==========
-// 取锚点之后的子串
-function section(src, anchor) {
-  const i = src.indexOf(anchor);
-  return i < 0 ? null : src.slice(i + anchor.length);
+// 返回第一个命中的锚点下标，均未命中返回 -1
+function indexOfAny(s, anchors) {
+  for (const a of anchors) {
+    const i = s.indexOf(a);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+// 取锚点之后的子串（支持多个备选锚点，取第一个命中的）
+function section(src, anchors) {
+  const list = Array.isArray(anchors) ? anchors : [anchors];
+  const i = indexOfAny(src, list);
+  return i < 0 ? null : src.slice(i + list.find((a) => src.indexOf(a) === i).length);
 }
 
 // 解析锚点后的第一个 markdown 表格，返回去除表头的数据行二维数组
@@ -342,7 +352,7 @@ function parseTable(src, anchor) {
 function parsePatterns(src) {
   const seg = section(src, '预估值采用以下每次请求的 token 数量；');
   if (!seg) return [];
-  const end = seg.indexOf('预估值还基于以下每 1M tokens 的价格');
+  const end = indexOfAny(seg, ['预估值还基于以下每 1M tokens 的价格', '你可以在 **']);
   const body = end >= 0 ? seg.slice(0, end) : seg;
   const re = /^- (.+?) — 每次请求 ([0-9,]+) 个输入 token，([0-9,]+) 个缓存 token，([0-9,]+) 个输出 token$/gm;
   const out = [];
@@ -395,9 +405,16 @@ function expandModelExpr(expr) {
 // ========== 数据组装 ==========
 // 解析全部原始数据，返回 { time, items }
 function parse(mdx) {
-  const prices = parseTable(mdx, '预估值还基于以下每 1M tokens 的价格以及每个模型包含的每月使用额度：');
+  // 价格+额度表：官方改版后锚点文案有变化，使用多备选锚点
+  const prices = parseTable(mdx, [
+    '预估值还基于以下每 1M tokens 的价格以及每个模型包含的每月使用额度：',
+    'Token 价格按每 1M tokens 列示。',
+  ]);
   const patterns = parsePatterns(mdx);
-  const official = parseTable(mdx, '下表提供了基于典型 Go 使用模式的预估请求数：');
+  const official = parseTable(mdx, [
+    '下表提供了基于典型 Go 使用模式的预估请求数：',
+    '下表根据典型的 Go 使用模式提供了预估请求数：',
+  ]);
 
   // 请求模式匹配表：归一化模型名 → token 构成
   const patMap = new Map();
