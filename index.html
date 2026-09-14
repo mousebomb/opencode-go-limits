@@ -269,8 +269,14 @@ const $ = (sel) => document.querySelector(sel);
 
 // 去掉千分位并转数字
 const num = (s) => parseFloat(String(s).replace(/,/g, ''));
-// 金额字符串（如 "$2.00"）转数字，支持 markdown 加粗（**$60**），'-'/空 返回 null
-const money = (s) => (s === '-' || s == null ? null : parseFloat(s.replace(/[$*\s]/g, '')));
+// 金额字符串转数字：优先取 markdown 粗体价（**$60**，通常是促销后的当前生效价），
+// 兼容删除线（~~$15~~）；无法解析返回 null（绝不返回 NaN）
+const money = (s) => {
+  if (s === '-' || s == null) return null;
+  const bold = String(s).match(/\*\*\$?([0-9,.]+)\*\*/);
+  const n = parseFloat((bold ? bold[1] : s).replace(/[$*\s]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
 // 模型名归一化：小写 + 去掉空格/连字符，用于模糊匹配
 const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
 // 千分位格式
@@ -439,7 +445,8 @@ function parse(mdx) {
     if (pat && price.in != null && price.out != null && price.cr != null) {
       // 每次请求成本 = (输入×单价 + 缓存×缓存价 + 输出×输出价) / 1M
       cost = (pat.in * price.in + pat.cache * price.cr + pat.out * price.out) / 1e6;
-      monthly = cost > 0 ? quota / cost : null;
+      // quota 解析失败时为 null，此时不做估算（避免 null→0 产生 monthly=0 的假数据）
+      monthly = cost > 0 && quota != null ? quota / cost : null;
     }
     const officialMonthly = offMap.get(norm(base)) ?? null;
     const diff = (monthly != null && officialMonthly) ? (monthly - officialMonthly) / officialMonthly : null;
@@ -452,8 +459,8 @@ function parse(mdx) {
 function render(data) {
   lastData = data;
   const { items } = data;
-  // 只展示可估算的档位；官方未提供请求模式、无法估算的模型（如 MiniMax M2.5）直接隐藏
-  const ordered = items.filter((i) => i.monthly != null).sort((a, b) => a.monthly - b.monthly);
+  // 只展示可估算的档位；monthly 必须为有限数字（NaN/Infinity 会污染对数刻度导致整图崩溃）
+  const ordered = items.filter((i) => Number.isFinite(i.monthly)).sort((a, b) => a.monthly - b.monthly);
 
   // 对数刻度范围（避免线性刻度下小值不可见）
   const lo = ordered.length ? Math.log10(Math.min(...ordered.map((i) => i.monthly))) : 0;
@@ -496,7 +503,7 @@ function render(data) {
     axis.appendChild(label);
   }
 
-  renderDetailTable(items.filter((i) => i.monthly != null));
+  renderDetailTable(items.filter((i) => Number.isFinite(i.monthly)));
 }
 
 // tooltip：悬停显示单价/额度/估算明细
