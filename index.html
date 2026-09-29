@@ -322,48 +322,40 @@ async function fetchMdx() {
 }
 
 // ========== mdx 解析 ==========
-// 返回第一个命中的锚点下标，均未命中返回 -1
-function indexOfAny(s, anchors) {
-  for (const a of anchors) {
-    const i = s.indexOf(a);
-    if (i >= 0) return i;
+// 按表头列名在全文定位 markdown 表，返回数据行二维数组。
+// 不依赖正文文案：官方文案语气反复改（"列示"→"计算"、"提供了…"→"估算…"），
+// 但表头列名是数据契约，稳定得多。命中第一个表头完全一致的表即返回。
+// 注：文档中 Go / Go Plus 两套价格表表头相同，因此取到的是第一套（Go）。
+function parseTableByHeader(src, headers) {
+  const want = headers.map(norm);
+  const lines = src.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const head = lines[i].trim();
+    if (!head.startsWith('|')) continue;
+    const cells = head.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length !== want.length || !cells.every((c, j) => norm(c) === want[j])) continue;
+    // 命中表头：下一行是 | --- | 分隔行，其后为数据行
+    const rows = [];
+    for (let j = i + 2; j < lines.length; j++) {
+      const t = lines[j].trim();
+      if (!t.startsWith('|')) break;
+      if (/^\|[\s:|-]+\|?$/.test(t)) continue; // 表内分隔行
+      rows.push(t.split('|').slice(1, -1).map((c) => c.trim()));
+    }
+    return rows;
   }
-  return -1;
+  return [];
 }
 
-// 取锚点之后的子串（支持多个备选锚点，取第一个命中的）
-function section(src, anchors) {
-  const list = Array.isArray(anchors) ? anchors : [anchors];
-  const i = indexOfAny(src, list);
-  return i < 0 ? null : src.slice(i + list.find((a) => src.indexOf(a) === i).length);
-}
-
-// 解析锚点后的第一个 markdown 表格，返回去除表头的数据行二维数组
-function parseTable(src, anchor) {
-  const seg = section(src, anchor);
-  if (!seg) return [];
-  const rows = [];
-  let started = false;
-  for (const line of seg.split('\n')) {
-    const t = line.trim();
-    if (!t.startsWith('|')) { if (started) break; continue; }
-    if (/^\|[\s:|-]+\|?$/.test(t)) continue; // 分隔行（| --- |）
-    started = true;
-    rows.push(t.split('|').slice(1, -1).map((c) => c.trim()));
-  }
-  return rows.slice(1); // 去掉表头行
-}
-
-// 解析"预估值采用以下每次请求的 token 数量"列表，返回 [{ expr, in, cache, out }]
+// 解析每次请求的 token 数量列表，返回 [{ expr, in, cache, out }]
 function parsePatterns(src) {
-  const seg = section(src, '预估值采用以下每次请求的 token 数量；');
-  if (!seg) return [];
-  const end = indexOfAny(seg, ['预估值还基于以下每 1M tokens 的价格', '你可以在 **']);
-  const body = end >= 0 ? seg.slice(0, end) : seg;
-  const re = /^- (.+?) — 每次请求 ([0-9,]+) 个输入 token，([0-9,]+) 个缓存 token，([0-9,]+) 个输出 token$/gm;
+  // 全文扫描，不再依赖段落锚点。行格式：
+  //   - <模型表达式> — N 个输入 token，N 个缓存 token，N 个输出 token
+  // 官方曾写作"每次请求 N 个输入 token"，故只匹配"个输入 token"之后的半段。
+  const re = /^- (.+?) — ([0-9,]+) 个输入 token，([0-9,]+) 个缓存 token，([0-9,]+) 个输出 token$/gm;
   const out = [];
   let m;
-  while ((m = re.exec(body))) {
+  while ((m = re.exec(src))) {
     out.push({
       expr: m[1],
       in: num(m[2]), cache: num(m[3]), out: num(m[4]),
@@ -411,16 +403,10 @@ function expandModelExpr(expr) {
 // ========== 数据组装 ==========
 // 解析全部原始数据，返回 { time, items }
 function parse(mdx) {
-  // 价格+额度表：官方改版后锚点文案有变化，使用多备选锚点
-  const prices = parseTable(mdx, [
-    '预估值还基于以下每 1M tokens 的价格以及每个模型包含的每月使用额度：',
-    'Token 价格按每 1M tokens 列示。',
-  ]);
+  // 价格+每月额度表、官方每月请求数对照表：均按表头列名定位（见 parseTableByHeader）
+  const prices = parseTableByHeader(mdx, ['模型', '输入', '输出', '缓存读取', '缓存写入', '每月限制']);
   const patterns = parsePatterns(mdx);
-  const official = parseTable(mdx, [
-    '下表提供了基于典型 Go 使用模式的预估请求数：',
-    '下表根据典型的 Go 使用模式提供了预估请求数：',
-  ]);
+  const official = parseTableByHeader(mdx, ['模型', '每 5 小时请求数', '每周请求数', '每月请求数']);
 
   // 请求模式匹配表：归一化模型名 → token 构成
   const patMap = new Map();
