@@ -5,9 +5,10 @@
 | 工具 | 页面 | 数据源 |
 | --- | --- | --- |
 | OpenCode Go 用量 | `index.html` | [opencode.ai/docs/go](https://opencode.ai/docs/zh-cn/go/#usage-limits) |
+| OpenCode Go Plus 用量 | `go-plus-limits.html` | 同上（取文档中第二套表） |
 | Command Code GOAT 用量 | `goat-limits.html` | [commandcode.ai/docs/plans/goat](https://commandcode.ai/docs/plans/goat) |
 
-- **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)（index.html 与 goat-limits.html 同目录，可互相跳转）
+- **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)（各 HTML 同目录，可通过顶部导航互相跳转）
 - 本地使用：双击打开对应 HTML 即可，无需安装、无需服务器、无需手动刷新。
 
 - 打开页面时自动抓取最新数据；抓取失败自动回退到上一次成功的本地缓存（localStorage）。
@@ -20,6 +21,12 @@
 ## OpenCode Go（index.html）
 
 抓取 [OpenCode Go 官方文档](https://opencode.ai/docs/zh-cn/go/#usage-limits) 的"价格 + 每月额度"表，估算每模型每月请求数。数据源为 GitHub 仓库 `anomalyco/opencode` 的 `dev` 分支原始 mdx（jsdelivr CDN 兜底）。
+
+## OpenCode Go Plus（go-plus-limits.html）
+
+同一份官方文档、同一套单价与 token 请求模式，**只有每月额度不同**（`$40/月`，额度为 Go 的 ×2 / ×3 / ×4 / ×8）。文档里两套表表头完全相同，靠出现序号区分（`parseTableByHeader` 的 `occurrence` 参数：0 = Go，1 = Go Plus）。
+
+代码与 `index.html` 同源，仅套餐参数与缓存 key 不同；两个页面顶部导航互通，便于订阅者按自己购买的方案查看。
 
 ## Command Code GOAT（goat-limits.html）
 
@@ -38,8 +45,9 @@
 
 ```
 opencode-go-limits/
-├── index.html         # OpenCode Go 工具
-├── goat-limits.html   # Command Code GOAT 工具
+├── index.html          # OpenCode Go 工具
+├── go-plus-limits.html # OpenCode Go Plus 工具（与 index.html 同源，取第二套表）
+├── goat-limits.html    # Command Code GOAT 工具
 ├── package.json       # 依赖（ssh2-sftp-client）与脚本（deploy / setup:hooks）
 ├── mbtools/deploy.cjs # 自动部署脚本（读 .env，SFTP 上传根目录全部 *.html）
 ├── .githooks/pre-push # git hook：push 时检测任意 *.html 变更并自动部署

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenCode Go · 每月预估请求数</title>
+<title>OpenCode Go Plus · 每月预估请求数</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -59,6 +59,7 @@
   }
   #refresh:hover { border-color: var(--muted); }
   #meta { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .sub { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
   #chart { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 6px; }
   .row-head, .row {
     display: grid;
@@ -127,8 +128,8 @@
 <body>
 <div class="wrap">
   <nav class="nav">
-    <a href="index.html" class="on"><span data-i18n="nav.opencode">OpenCode Go 用量</span></a>
-    <a href="go-plus-limits.html"><span data-i18n="nav.goplus">OpenCode Go Plus 用量</span></a>
+    <a href="index.html"><span data-i18n="nav.opencode">OpenCode Go 用量</span></a>
+    <a href="go-plus-limits.html" class="on"><span data-i18n="nav.goplus">OpenCode Go Plus 用量</span></a>
     <a href="goat-limits.html"><span data-i18n="nav.goat">Command Code GOAT 用量</span></a>
     <span class="lang">
       <button type="button" data-lang="zh">中文</button>
@@ -138,9 +139,10 @@
 
   <header>
     <div class="hd-top">
-      <h1 data-i18n="page.title">OpenCode Go · 每月预估请求数</h1>
+      <h1 data-i18n="page.title">OpenCode Go Plus · 每月预估请求数</h1>
       <button id="refresh" type="button" data-i18n="btn.refresh">立即刷新</button>
     </div>
+    <p class="sub" data-i18n="page.sub">$40/月 · 每月额度按 Go Plus 方案计算</p>
     <p id="meta" data-i18n="meta.fetching">正在获取最新数据…</p>
   </header>
 
@@ -176,7 +178,8 @@
 // ========== 多语言（轻量 i18n：自动检测 + 手动切换，localStorage 记忆） ==========
 const DICT = {
   zh: {
-    'page.title': 'OpenCode Go · 每月预估请求数',
+    'page.title': 'OpenCode Go Plus · 每月预估请求数',
+    'page.sub': '$40/月 · 每月额度按 Go Plus 方案计算',
     'nav.opencode': 'OpenCode Go 用量',
     'nav.goplus': 'OpenCode Go Plus 用量',
     'nav.goat': 'Command Code GOAT 用量',
@@ -209,10 +212,11 @@ const DICT = {
     'flag.dev': '计算值与官方值差异较大',
     'gh.star': '去 GitHub 点亮 Star',
     'footer.line1': '数据源：<a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai 官方文档</a>（GitHub <code>anomalyco/opencode</code> 同步）。',
-    'footer.line2': '打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
+    'footer.line2': '本页取 <strong>Go Plus 方案（$40/月）</strong> 的每月额度，与 Go 方案共用同一份单价与 token 请求模式。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
   },
   en: {
-    'page.title': 'OpenCode Go · Estimated requests / month',
+    'page.title': 'OpenCode Go Plus · Estimated requests / month',
+    'page.sub': '$40/mo · monthly quota based on the Go Plus plan',
     'nav.opencode': 'OpenCode Go usage',
     'nav.goplus': 'OpenCode Go Plus usage',
     'nav.goat': 'Command Code GOAT usage',
@@ -245,7 +249,7 @@ const DICT = {
     'flag.dev': 'Large deviation from the official estimate',
     'gh.star': 'Star on GitHub',
     'footer.line1': 'Source: <a href="https://opencode.ai/docs/zh-cn/go/#usage-limits" target="_blank" rel="noopener">opencode.ai official docs</a> (mirrored from GitHub <code>anomalyco/opencode</code>).',
-    'footer.line2': 'Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
+    'footer.line2': 'This page uses the <strong>Go Plus plan ($40/mo)</strong> monthly quota; unit prices and token request patterns are shared with the Go plan. Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
   },
 };
 // 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
@@ -267,7 +271,7 @@ const SOURCES = [
   'https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx',
   'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx',
 ];
-const CACHE_KEY = 'opencode-go-limits-v1';
+const CACHE_KEY = 'opencode-go-plus-limits-v1';
 const $ = (sel) => document.querySelector(sel);
 
 // 去掉千分位并转数字
@@ -410,8 +414,8 @@ function expandModelExpr(expr) {
 // 解析全部原始数据，返回 { time, items }
 function parse(mdx) {
   // 价格+每月额度表、官方每月请求数对照表：均按表头列名定位（见 parseTableByHeader）
-  // 本页为 Go 套餐，取文档里第一套表（Go / Go Plus 两套表表头相同，靠序号区分）
-  const PLAN = 0;
+  // 本页为 Go Plus 套餐，取文档里第二套表（两套表表头相同，靠序号区分）
+  const PLAN = 1;
   const prices = parseTableByHeader(mdx, ['模型', '输入', '输出', '缓存读取', '缓存写入', '每月限制'], PLAN);
   const patterns = parsePatterns(mdx);
   const official = parseTableByHeader(mdx, ['模型', '每 5 小时请求数', '每周请求数', '每月请求数'], PLAN);
