@@ -1,6 +1,6 @@
 # Coding Agent 套餐 · 每月可用请求数
 
-零依赖单文件 HTML 工具集，打开页面即自动抓取各套餐官方文档数据，按模型绘制"每月可用请求数"横向条状图（对数刻度）。
+零依赖单文件 HTML 工具集，打开页面即自动抓取各套餐官方文档数据，按模型绘制"每月可用请求数"横向条状图（对数刻度）。**视觉风格是手绘素描**：米白纸面、手写楷体、rough.js 画的抖动墨线与斜排线填充。
 
 | 工具 | 页面 | 数据源 |
 | --- | --- | --- |
@@ -15,6 +15,41 @@
 - 顶部"立即刷新"按钮可强制重新抓取。
 - 悬停任意条显示明细：单价、额度、每请求成本、token 请求模式、官方对照值。
 - 底部"查看原始数据明细"可展开完整计算过程表。
+- 中英双语，自动识别系统语言，可手动切换（记忆在 localStorage）。
+
+---
+
+## 视觉风格：手绘素描（paper sketch）
+
+三个页面共用同一套主题，**主题的唯一定义源是 `index.html`**：`go-plus-limits.html` 由替换脚本从它派生，`goat-limits.html` 由拼装脚本从它抽取共享片段（CSS / 手绘滤镜 / rough.js / 绘制 helpers）后拼上自己的页面逻辑。改主题请改 `index.html`，再重新派生另两页。
+
+### 手绘感由四样东西堆出来
+
+1. **抖动的线条** —— [rough.js](https://roughjs.com) 4.6.6（MIT）**内联进 HTML**。刻意不走 CDN：
+   本工具承诺"双击可用的单文件"，且 `mbtools/deploy.cjs` 只上传根目录 `*.html`，
+   外部 js 既传不上去、也会让离线（走 localStorage 缓存）时图表画不出来。
+   - 条形 = 淡彩底色（实色 alpha 0.14）+ 斜排线 `hachure`（间距取条长的 1/70）+ 单独一笔轮廓。
+     轮廓单独画一份，是为了悬停时能用 CSS 只加粗描边、不动填充。
+   - 每行换一个 `seed`，条形各画各的；网格竖线则共用 `seed`，跨行才能连成一条对齐的线。
+   - 整条填充只生成 1 个 `<path>`，所以排线再密也不拖慢渲染。
+2. **手绘边框** —— SVG 滤镜 `feTurbulence + feDisplacementMap`（`#sk`）作用在面板/卡片的
+   `::after` 边框上，只抖边框不动文字。细横线（页头分隔、表头分隔）另用一张内联 SVG 波浪线
+   平铺，起止点同高以保证拼接无缝。
+3. **纸纹** —— `body::before` 平铺灰阶噪点 + `mix-blend-mode: multiply`。噪点必须过一遍
+   `feColorMatrix saturate=0`，否则 feTurbulence 默认输出彩色噪点，会给整页染一层粉调。
+4. **手写字体** —— 字体栈优先用本机装的**霞鹜文楷**（楷体手写感且易读），退到 macOS 的
+   手札体/翩翩体，再退到各系统的楷体。标题用**马善政楷书**，数字用**霞鹜文楷等宽**
+   （保住手写感的同时让小数点对齐）。访客没装这些字体时会退到系统楷体，观感会弱一档但不会坏。
+
+配色只用「墨 + 靛蓝 + 松绿」，刻意避开紫/赤（火）与黄/棕（土）。
+
+### 改主题时的两个坑
+
+- `:root` 里的 CSS 变量被解析失败时**不会报错**，只会静默让所有 `var()` 失效
+  （面板变透明、网格塌成一列）。改完样式务必确认 `<style>` 标签没被重复拼进去。
+- 轨道 `<svg>` 必须是**绝对定位**的。否则 svg 的显式宽度会顶住网格列的 `min-content`，
+  窗口变窄时图表不会跟着收缩。窗口尺寸变化走 `resize` 事件重画（手绘线条是按像素坐标画的，
+  不能靠 CSS 拉伸）。
 
 ---
 
@@ -45,9 +80,9 @@
 
 ```
 opencode-go-limits/
-├── index.html          # OpenCode Go 工具
-├── go-plus-limits.html # OpenCode Go Plus 工具（与 index.html 同源，取第二套表）
-├── goat-limits.html    # Command Code GOAT 工具
+├── index.html          # OpenCode Go 工具（同时是三页主题的唯一定义源）
+├── go-plus-limits.html # OpenCode Go Plus 工具（由 index.html 派生，取第二套表）
+├── goat-limits.html    # Command Code GOAT 工具（共享 index.html 的主题片段）
 ├── package.json       # 依赖（ssh2-sftp-client）与脚本（deploy / setup:hooks）
 ├── mbtools/deploy.cjs # 自动部署脚本（读 .env，SFTP 上传根目录全部 *.html）
 ├── .githooks/pre-push # git hook：push 时检测任意 *.html 变更并自动部署
@@ -55,6 +90,9 @@ opencode-go-limits/
 ├── README.md          # 本文档
 └── devlog/            # 开发日志
 ```
+
+> 每个 HTML 内联了压缩后的 rough.js（约 27 KB）。三个文件都仍是"双击即用"的独立单文件，
+> 不引入任何运行时外部依赖。
 
 ## 自动部署（可选）
 
