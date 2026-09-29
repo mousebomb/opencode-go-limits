@@ -1,5 +1,24 @@
 # 项目长期约定 · opencode-go-limits
 
+## 分支隔离：手绘主题只在 `sketch-theme` 分支
+
+2026-09-29 把三页的手绘素描风整体隔离到 `sketch-theme` 分支（提交 `d90f003`），
+**`main` 保持原来的深色版**。作者的判断是：这类数据密度大的对比图，手绘线稿会降低精确读数
+的可读性，只适合作为试验分支存在。
+
+→ 下文「主题唯一定义源」「手绘主题要点」两节描述的是 **`sketch-theme` 分支上的形态**，
+   在 `main` 上不成立。改动前先确认 `git branch --show-current`。
+
+### ⚠️ `pre-push` 不区分分支，push 任何分支都可能上线
+
+`.githooks/pre-push` 第 24-28 行：远端**没有**该分支时（首次推送），只要提交里有
+`index.html` 就直接 `NEED_DEPLOY=1` → 跑 `mbtools/deploy.cjs` SFTP 覆盖生产。
+它**不判断当前是不是 main**。
+
+→ 把 `sketch-theme` 推到远端做备份时，必须 `git push --no-verify origin sketch-theme`，
+   否则手绘版会直接覆盖线上。
+→ 反过来，如果哪天想让手绘版上线，正常 `git push` 到 main 即可（hook 会部署）。
+
 ## 硬约束：部署只上传 `*.html`
 
 `mbtools/deploy.cjs` 与 `.githooks/pre-push` 只 SFTP 上传**根目录下的 `*.html`**。
