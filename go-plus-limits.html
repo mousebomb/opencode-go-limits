@@ -393,11 +393,11 @@ const langLocale = () => (LANG === 'zh' ? 'zh-CN' : 'en-US');
 const fmtDate = (iso) => new Date(iso).toLocaleString(langLocale(), { hour12: false });
 
 // ========== 常量与工具 ==========
-// 官方文档已迁到 services/www/src/docs/content/console/go.mdx（原 packages/web/.../zh-cn/go.mdx 已 404），
-// 且文档站点改为英文单语（线上 https://opencode.ai/v2/docs/console/go/），故表头与解析均按英文。
+// 官方文档现位于 services/site/src/docs/content/console/go.mdx（2026-11 仓库改名：services/www → services/site），
+// 文档为英文单语（线上 https://opencode.ai/v2/docs/console/go/），故表头与解析均按英文。
 const SOURCES = [
-  'https://raw.githubusercontent.com/anomalyco/opencode/dev/services/www/src/docs/content/console/go.mdx',
-  'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/www/src/docs/content/console/go.mdx',
+  'https://raw.githubusercontent.com/anomalyco/opencode/dev/services/site/src/docs/content/console/go.mdx',
+  'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/site/src/docs/content/console/go.mdx',
 ];
 const CACHE_KEY = 'opencode-go-plus-limits-v1';
 const $ = (sel) => document.querySelector(sel);
