@@ -207,6 +207,10 @@
     color: var(--ink-2); font-family: var(--hand); font-weight: 400;
     border-bottom: 2px solid var(--ink); background: none;
   }
+  /* ZDR 标记：只用「墨 + 松绿」，非 ZDR 不算错误，所以不标红 */
+  #detail-table .zdr { font-family: var(--hand); white-space: nowrap; }
+  #detail-table .zdr.yes { color: var(--accent-2); }
+  #detail-table .zdr.no { color: var(--ink-2); }
 
   footer { color: var(--ink-2); font-size: 13px; margin-top: 26px; line-height: 1.85; }
   footer p { margin: 0; }
@@ -275,7 +279,7 @@
   </div>
 
   <details id="detail">
-    <summary data-i18n="detail.summary">查看原始数据明细（5 小时估算 / 月额度 / 每请求成本）</summary>
+    <summary data-i18n="detail.summary">查看原始数据明细（5 小时估算 / 月额度 / 每请求成本 / ZDR）</summary>
     <table id="detail-table"></table>
   </details>
 
@@ -315,9 +319,10 @@ const DICT = {
     'head.model': '模型',
     'head.requests': '每月请求数（估算）',
     'head.count': '数量',
-    'detail.summary': '查看原始数据明细（5 小时估算 / 月额度 / 每请求成本）',
-    'dt.model': '模型', 'dt.r5': '5 小时估算', 'dt.month': '每月估算',
+    'detail.summary': '查看原始数据明细（5 小时估算 / 月额度 / 每请求成本 / ZDR）',
+    'dt.model': '模型', 'dt.zdr': 'ZDR', 'dt.r5': '5 小时估算', 'dt.month': '每月估算',
     'dt.allow': '月额度$', 'dt.cost': '每请求成本$', 'dt.tag': '标记',
+    'zdr.yes': 'ZDR', 'zdr.no': '非 ZDR', 'zdr.unknown': '—',
     'tip.r5': '官方 5 小时预估请求数',
     'tip.month': '每月请求数（5 小时估算 × 5）',
     'tip.allow': '每月使用额度',
@@ -325,7 +330,7 @@ const DICT = {
     'tip.tag.free': '免费不限量', 'tip.tag.limited': '限时', 'tip.tag.fresh': '新',
     'gh.star': '去 GitHub 点亮 Star',
     'footer.line1': '数据源：<a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a>（GitHub <code>anomalyco/opencode</code> 的 <code>go-models.ts</code>）。',
-    'footer.line2': '月请求按官方口径推算：5 小时限额为月额度的 20%，故月请求 = 5 小时估算 × 5。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
+    'footer.line2': '月请求按官方口径推算：5 小时限额为月额度的 20%，故月请求 = 5 小时估算 × 5。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。ZDR 标记另取自 opencode.ai 的 Go 模型接口（每模型的 <code>go.zdr</code>），该接口不可用时该列显示 —。',
   },
   en: {
     'page.title': 'OpenCode Go · Estimated requests / month',
@@ -343,9 +348,10 @@ const DICT = {
     'head.model': 'Model',
     'head.requests': 'Requests / month (est.)',
     'head.count': 'Count',
-    'detail.summary': 'Raw data detail (5-hour estimate / monthly quota / cost per request)',
-    'dt.model': 'Model', 'dt.r5': 'Per 5 h', 'dt.month': 'Per month',
+    'detail.summary': 'Raw data detail (5-hour estimate / monthly quota / cost per request / ZDR)',
+    'dt.model': 'Model', 'dt.zdr': 'ZDR', 'dt.r5': 'Per 5 h', 'dt.month': 'Per month',
     'dt.allow': 'Quota $', 'dt.cost': 'Cost/req $', 'dt.tag': 'Tags',
+    'zdr.yes': 'ZDR', 'zdr.no': 'No ZDR', 'zdr.unknown': '—',
     'tip.r5': 'Official estimate per 5 hours',
     'tip.month': 'Requests / month (5-hour estimate × 5)',
     'tip.allow': 'Monthly quota',
@@ -353,7 +359,7 @@ const DICT = {
     'tip.tag.free': 'Free unlimited', 'tip.tag.limited': 'Limited time', 'tip.tag.fresh': 'New',
     'gh.star': 'Star on GitHub',
     'footer.line1': 'Source: <a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a> (GitHub <code>anomalyco/opencode</code> → <code>go-models.ts</code>).',
-    'footer.line2': 'Monthly requests are derived from the official rule that the 5-hour limit is 20% of the monthly allowance, so monthly = 5-hour estimate × 5. Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
+    'footer.line2': 'Monthly requests are derived from the official rule that the 5-hour limit is 20% of the monthly allowance, so monthly = 5-hour estimate × 5. Data is fetched automatically on load; falls back to the last successful cache if fetching fails. The ZDR flag comes from the opencode.ai Go models endpoint (<code>go.zdr</code> per model); when that endpoint is unreachable this column shows —.',
   },
 };
 // 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
@@ -380,6 +386,10 @@ const SOURCES = [
 ];
 // 兜底：官方再次挪动文件时，用 GitHub tree API 找到 go-models.ts 的真实路径再拼 raw URL
 const TREE_API = 'https://api.github.com/repos/anomalyco/opencode/git/trees/dev?recursive=1';
+// ZDR（零数据留存）标记：额度数据文件里没有这个字段，改从 Go 模型接口取。
+// 该接口对每个模型给出 go.zdr / go.training / go.limited_regions，且带 CORS *，静态页可直接跨域拉。
+// 本页只用 zdr；接口不可用时不影响主表，ZDR 列显示 —。
+const ZDR_SRC = 'https://opencode.ai/inference/go/v1/models';
 const CACHE_KEY = 'opencode-go-limits-v2';
 const $ = (sel) => document.querySelector(sel);
 
@@ -618,6 +628,18 @@ async function fetchDiscovered() {
   return await res2.text();
 }
 
+// 抓 ZDR 标记：返回 { 'model-id': true|false }；抓不到返回 null（不阻断主流程）
+async function fetchZdr() {
+  const res = await fetch(ZDR_SRC, { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const j = await res.json();
+  const map = {};
+  for (const m of j.data || []) {
+    if (m && m.id && m.go && typeof m.go.zdr === 'boolean') map[m.id] = m.go.zdr;
+  }
+  return Object.keys(map).length ? map : null;
+}
+
 // ========== 数据文件解析 ==========
 // 官方数据源是 TS 源码，这里只做文本切片 + 字段匹配，绝不把远端内容当代码执行。
 // 取 src 中 start 之后、end 之前的片段（用于圈出数组 / 对象字面量）
@@ -664,10 +686,11 @@ function parsePlanMap(text) {
 }
 
 // ========== 数据组装 ==========
-// 解析全部原始数据，返回 { time, items }
+// 解析全部原始数据，返回 { time, zdr, items }
+// zdr：{ id: boolean } 或 null（外部接口没取到），只影响明细表的 ZDR 列
 // 月请求口径：官方规定「5 小时限额 = 月额度的 20%」，请求数按同一单次成本换算，
 // 所以 月请求 = 5 小时估算 × 5。免费模型（Infinity）留在明细里但不进图表。
-function parse(src) {
+function parse(src, zdr) {
   // 本页为 Go 套餐（0）；Go Plus 页取 plusLimits（1）
   const PLAN = 0;
   const models = parseModelList(sliceRegion(src, 'const goModels', '\n]'));
@@ -683,9 +706,11 @@ function parse(src) {
     return {
       name: m.name, requests5h, monthly, allowance, cost,
       fresh: !!m.fresh, limited: !!m.limitedTime,
+      // 三态：true / false / null（接口没给这个模型）
+      zdr: zdr && typeof zdr[m.id] === 'boolean' ? zdr[m.id] : null,
     };
   });
-  return { time: new Date().toISOString(), items };
+  return { time: new Date().toISOString(), zdr: zdr || null, items };
 }
 
 // ========== 渲染 ==========
@@ -755,14 +780,16 @@ function bindTip(row, it) {
 // 明细表：免费模型也列出来（标记为免费不限量），便于对照官方全量模型
 function renderDetailTable(items) {
   const t2 = $('#detail-table');
-  const cols = ['dt.model', 'dt.r5', 'dt.month', 'dt.allow', 'dt.cost', 'dt.tag'];
+  const cols = ['dt.model', 'dt.zdr', 'dt.r5', 'dt.month', 'dt.allow', 'dt.cost', 'dt.tag'];
   const head = '<tr>' + cols.map((c) => '<th>' + t(c) + '</th>').join('') + '</tr>';
   const body = items.map((it) => {
     const tags = [];
     if (!Number.isFinite(it.requests5h)) tags.push(t('tip.tag.free'));
     if (it.limited) tags.push(t('tip.tag.limited'));
     if (it.fresh) tags.push(t('tip.tag.fresh'));
+    const zdrCls = it.zdr === true ? 'yes' : it.zdr === false ? 'no' : '';
     return '<tr><td>' + vIcon(it.name) + esc(it.name) + '</td>' +
+      '<td class="zdr ' + zdrCls + '">' + zdrText(it.zdr) + '</td>' +
       '<td>' + (Number.isFinite(it.requests5h) ? fmt(it.requests5h) : '∞') + '</td>' +
       '<td>' + (it.monthly != null ? fmt(Math.round(it.monthly)) : '∞') + '</td>' +
       '<td>' + (Number.isFinite(it.allowance) ? '$' + it.allowance : '∞') + '</td>' +
@@ -770,6 +797,13 @@ function renderDetailTable(items) {
       '<td>' + tags.join(' · ') + '</td></tr>';
   }).join('');
   t2.innerHTML = head + body;
+}
+
+// ZDR 三态文案：true 是零留存，false 是有留存，null 是接口没取到
+function zdrText(v) {
+  if (v === true) return '✓ ' + t('zdr.yes');
+  if (v === false) return '✗ ' + t('zdr.no');
+  return t('zdr.unknown');
 }
 
 function esc(s) {
@@ -791,8 +825,13 @@ async function load() {
     setMeta('meta.cache', { time: hasCache.time });
   }
   try {
-    const src = await fetchSource();
-    const data = parse(src);
+    // 两份数据并行抓：额度表（必须成功）与 ZDR 标记（失败降级为 null）
+    const [src, zdr] = await Promise.all([
+      fetchSource(),
+      fetchZdr().catch(() => null),
+    ]);
+    // ZDR 接口临时挂掉时，沿用上次缓存里的标记，避免明细表整列变 —
+    const data = parse(src, zdr || (hasCache && hasCache.zdr) || null);
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     render(data);
     // 免费模型不计入图表，单独在 meta 里说明
