@@ -4,8 +4,8 @@
 
 | 工具 | 页面 | 数据源 |
 | --- | --- | --- |
-| OpenCode Go 用量 | `index.html` | [opencode.ai/v2/docs/console/go](https://opencode.ai/v2/docs/console/go/#usage-limits) |
-| OpenCode Go Plus 用量 | `go-plus-limits.html` | 同上（取文档中第二套表） |
+| OpenCode Go 用量 | `index.html` | [opencode.ai/console/go](https://opencode.ai/console/go#limits)（数据取自仓库 `go-models.ts`） |
+| OpenCode Go Plus 用量 | `go-plus-limits.html` | 同上（取 `plusLimits` 一档） |
 | Command Code GOAT 用量 | `goat-limits.html` | [commandcode.ai/docs/plans/goat](https://commandcode.ai/docs/plans/goat) |
 
 - **在线预览**：[mousebomb.org/opencode-go-limits/](https://mousebomb.org/opencode-go-limits/)（各 HTML 同目录，可通过顶部导航互相跳转）
@@ -13,8 +13,8 @@
 
 - 打开页面时自动抓取最新数据；抓取失败自动回退到上一次成功的本地缓存（localStorage）。
 - 顶部"立即刷新"按钮可强制重新抓取。
-- 悬停任意条显示明细：单价、额度、每请求成本、token 请求模式、官方对照值。
-- 底部"查看原始数据明细"可展开完整计算过程表。
+- 悬停任意条显示明细：官方 5 小时估算、月请求、月额度、推导出的每请求成本。
+- 底部"查看原始数据明细"可展开完整数据表（含免费不限量模型的标记）。
 - 中英双语，自动识别系统语言，可手动切换（记忆在 localStorage）。
 
 ---
@@ -55,11 +55,17 @@
 
 ## OpenCode Go（index.html）
 
-抓取 [OpenCode Go 官方文档](https://opencode.ai/v2/docs/console/go/#usage-limits) 的"价格 + 每月额度"表，估算每模型每月请求数。数据源为 GitHub 仓库 `anomalyco/opencode` 的 `dev` 分支原始 mdx（jsdelivr CDN 兜底）。
+抓取 GitHub 仓库 `anomalyco/opencode` 的 `dev` 分支里的站点数据文件 `services/site/src/component/go-models.ts`（raw 直连，jsdelivr CDN 兜底，两者都挂时用 GitHub tree API 自动定位路径）。
+
+- 官方 2026-11 把「5 小时请求估算 + 月额度」表从文档 `go.mdx` 搬进了 Console 页，文档里已无表格，故改为解析这份数据文件。
+- 每模型给出官方 **5 小时预估请求数**（`requests`）与 **月额度**（`allowance`，美元）。
+- 月请求按官方口径推算：5 小时限额 = 月额度的 20%，故 `月请求 = 5 小时估算 × 5`。
+- 免费模型（`Infinity`）保留在明细表并标记「免费不限量」，不进图表（对数刻度容不下无穷）。
+- 解析只做文本切片与字段匹配，不执行远端内容；官方再挪路径时 `SOURCES` 全失败会触发 tree API 兜底。
 
 ## OpenCode Go Plus（go-plus-limits.html）
 
-同一份官方文档、同一套单价与 token 请求模式，**只有每月额度不同**（`$40/月`，额度为 Go 的 ×2 / ×3 / ×4 / ×8）。文档里两套表表头完全相同，靠出现序号区分（`parseTableByHeader` 的 `occurrence` 参数：0 = Go，1 = Go Plus）。
+同一份数据文件，读 `plusLimits` 一档（`{ id: [5 小时估算, 月额度] }`），Go Plus 的额度与请求数都是 Go 的整数倍（×2 / ×3 / ×4 / ×8 视模型而定）。
 
 代码与 `index.html` 同源，仅套餐参数与缓存 key 不同；两个页面顶部导航互通，便于订阅者按自己购买的方案查看。
 
