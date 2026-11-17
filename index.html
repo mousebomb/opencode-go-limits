@@ -137,7 +137,6 @@
   .row-name {
     font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .row-name .flag { color: var(--warn); margin-left: 4px; cursor: help; font-size: 12px; }
   /* 厂商图标：内联单色 SVG（deploy 只传 *.html，不能引外部图片）。
      用 currentColor 跟着文字走，默认比正文浅一档，悬停时压深。 */
   .v-icon {
@@ -183,7 +182,6 @@
   #tip .t-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; }
   #tip .k { color: var(--ink-2); }
   #tip .v { text-align: right; font-family: var(--hand-num); font-variant-numeric: tabular-nums; }
-  #tip .warn { color: var(--warn); }
   .hidden { display: none; }
 
   #error {
@@ -277,7 +275,7 @@
   </div>
 
   <details id="detail">
-    <summary data-i18n="detail.summary">查看原始数据明细（单价 / 额度 / 估算过程）</summary>
+    <summary data-i18n="detail.summary">查看原始数据明细（5 小时估算 / 月额度 / 每请求成本）</summary>
     <table id="detail-table"></table>
   </details>
 
@@ -309,33 +307,25 @@ const DICT = {
     'btn.refresh': '立即刷新',
     'meta.fetching': '正在获取最新数据…',
     'meta.wait': '等待在线数据…',
-    'meta.ok': '数据抓取于 {time} · 共 {n} 个价格档位 · 来源：opencode.ai 官方文档',
+    'meta.ok': '数据抓取于 {time} · 共 {n} 个模型（另有 {free} 个免费不限量）· 来源：opencode.ai 官方数据',
+    'meta.ok2': '数据抓取于 {time} · 共 {n} 个模型 · 来源：opencode.ai 官方数据',
     'meta.cache': '正在使用本地缓存（抓取于 {time}），并尝试在线更新…',
     'meta.fallback': '在线抓取失败，当前显示本地缓存。{msg}',
     'err.fetch': '在线抓取失败：{msg}。可点“立即刷新”重试，或检查网络。',
     'head.model': '模型',
     'head.requests': '每月请求数（估算）',
     'head.count': '数量',
-    'detail.summary': '查看原始数据明细（单价 / 额度 / 估算过程）',
-    'dt.model': '模型', 'dt.quota': '额度', 'dt.in': '输入$/M', 'dt.out': '输出$/M',
-    'dt.cr': '缓存读$/M', 'dt.cw': '缓存写$/M', 'dt.cost': '每请求成本$',
-    'dt.est': '估算月请求', 'dt.off': '官方月请求', 'dt.diff': '偏差',
-    'tip.est': '每月请求数（估算）',
-    'tip.est.na': '官方未提供请求模式，无法估算',
-    'tip.off': '官方对照值',
-    'tip.quota': '每月使用额度',
-    'tip.cost': '每请求成本',
-    'tip.diffLabel': '差异提示',
-    'tip.diff': '▲ 与官方值偏差 {pct}%',
-    'tip.pat': '请求模式',
-    'tip.pat.v': '{a} 输入 / {b} 缓存 / {c} 输出',
-    'tip.price': '单价',
-    'tip.p.line1': '输入 {i} · 输出 {o}',
-    'tip.p.line2': '缓存读 {c} · 缓存写 {w}',
-    'flag.dev': '计算值与官方值差异较大',
+    'detail.summary': '查看原始数据明细（5 小时估算 / 月额度 / 每请求成本）',
+    'dt.model': '模型', 'dt.r5': '5 小时估算', 'dt.month': '每月估算',
+    'dt.allow': '月额度$', 'dt.cost': '每请求成本$', 'dt.tag': '标记',
+    'tip.r5': '官方 5 小时预估请求数',
+    'tip.month': '每月请求数（5 小时估算 × 5）',
+    'tip.allow': '每月使用额度',
+    'tip.cost': '每请求成本（月额度 ÷ 月请求）',
+    'tip.tag.free': '免费不限量', 'tip.tag.limited': '限时', 'tip.tag.fresh': '新',
     'gh.star': '去 GitHub 点亮 Star',
-    'footer.line1': '数据源：<a href="https://opencode.ai/v2/docs/console/go/#usage-limits" target="_blank" rel="noopener">opencode.ai 官方文档</a>（GitHub <code>anomalyco/opencode</code> 同步）。',
-    'footer.line2': '打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
+    'footer.line1': '数据源：<a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a>（GitHub <code>anomalyco/opencode</code> 的 <code>go-models.ts</code>）。',
+    'footer.line2': '月请求按官方口径推算：5 小时限额为月额度的 20%，故月请求 = 5 小时估算 × 5。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。',
   },
   en: {
     'page.title': 'OpenCode Go · Estimated requests / month',
@@ -345,33 +335,25 @@ const DICT = {
     'btn.refresh': 'Refresh',
     'meta.fetching': 'Fetching latest data…',
     'meta.wait': 'Waiting for online data…',
-    'meta.ok': 'Data fetched {time} · {n} pricing tiers · source: opencode.ai official docs',
+    'meta.ok': 'Data fetched {time} · {n} models ({free} free / unlimited) · source: opencode.ai official data',
+    'meta.ok2': 'Data fetched {time} · {n} models · source: opencode.ai official data',
     'meta.cache': 'Showing cached data (fetched {time}) while updating…',
     'meta.fallback': 'Online fetch failed; showing cached data. {msg}',
     'err.fetch': 'Fetch failed: {msg}. Try “Refresh” or check your network.',
     'head.model': 'Model',
     'head.requests': 'Requests / month (est.)',
     'head.count': 'Count',
-    'detail.summary': 'Raw data detail (price / quota / calculation)',
-    'dt.model': 'Model', 'dt.quota': 'Quota', 'dt.in': 'Input $/M', 'dt.out': 'Output $/M',
-    'dt.cr': 'Cache read $/M', 'dt.cw': 'Cache write $/M', 'dt.cost': 'Cost/req $',
-    'dt.est': 'Est. monthly', 'dt.off': 'Official monthly', 'dt.diff': 'Diff',
-    'tip.est': 'Est. requests / month',
-    'tip.est.na': 'No request pattern available to estimate',
-    'tip.off': 'Official value',
-    'tip.quota': 'Monthly quota',
-    'tip.cost': 'Cost per request',
-    'tip.diffLabel': 'Deviation',
-    'tip.diff': '▲ {pct}% off official',
-    'tip.pat': 'Request pattern',
-    'tip.pat.v': '{a} input / {b} cached / {c} output',
-    'tip.price': 'Unit price',
-    'tip.p.line1': 'Input {i} · Output {o}',
-    'tip.p.line2': 'Cache read {c} · Cache write {w}',
-    'flag.dev': 'Large deviation from the official estimate',
+    'detail.summary': 'Raw data detail (5-hour estimate / monthly quota / cost per request)',
+    'dt.model': 'Model', 'dt.r5': 'Per 5 h', 'dt.month': 'Per month',
+    'dt.allow': 'Quota $', 'dt.cost': 'Cost/req $', 'dt.tag': 'Tags',
+    'tip.r5': 'Official estimate per 5 hours',
+    'tip.month': 'Requests / month (5-hour estimate × 5)',
+    'tip.allow': 'Monthly quota',
+    'tip.cost': 'Cost per request (quota ÷ monthly requests)',
+    'tip.tag.free': 'Free unlimited', 'tip.tag.limited': 'Limited time', 'tip.tag.fresh': 'New',
     'gh.star': 'Star on GitHub',
-    'footer.line1': 'Source: <a href="https://opencode.ai/v2/docs/console/go/#usage-limits" target="_blank" rel="noopener">opencode.ai official docs</a> (mirrored from GitHub <code>anomalyco/opencode</code>).',
-    'footer.line2': 'Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
+    'footer.line1': 'Source: <a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a> (GitHub <code>anomalyco/opencode</code> → <code>go-models.ts</code>).',
+    'footer.line2': 'Monthly requests are derived from the official rule that the 5-hour limit is 20% of the monthly allowance, so monthly = 5-hour estimate × 5. Data is fetched automatically on load; falls back to the last successful cache if fetching fails.',
   },
 };
 // 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
@@ -389,13 +371,16 @@ const langLocale = () => (LANG === 'zh' ? 'zh-CN' : 'en-US');
 const fmtDate = (iso) => new Date(iso).toLocaleString(langLocale(), { hour12: false });
 
 // ========== 常量与工具 ==========
-// 官方文档现位于 services/site/src/docs/content/console/go.mdx（2026-11 仓库改名：services/www → services/site），
-// 文档为英文单语（线上 https://opencode.ai/v2/docs/console/go/），故表头与解析均按英文。
+// 官方把「5 小时请求估算 + 月额度」从文档 mdx 搬到了站点数据文件：
+// services/site/src/component/go-models.ts（2026-11 起 go.mdx 已无表格）。
+// 该文件是 TS 源码，直接抓原始文本解析，不执行远端代码。
 const SOURCES = [
-  'https://raw.githubusercontent.com/anomalyco/opencode/dev/services/site/src/docs/content/console/go.mdx',
-  'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/site/src/docs/content/console/go.mdx',
+  'https://raw.githubusercontent.com/anomalyco/opencode/dev/services/site/src/component/go-models.ts',
+  'https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/site/src/component/go-models.ts',
 ];
-const CACHE_KEY = 'opencode-go-limits-v1';
+// 兜底：官方再次挪动文件时，用 GitHub tree API 找到 go-models.ts 的真实路径再拼 raw URL
+const TREE_API = 'https://api.github.com/repos/anomalyco/opencode/git/trees/dev?recursive=1';
+const CACHE_KEY = 'opencode-go-limits-v2';
 const $ = (sel) => document.querySelector(sel);
 
 // ========== 厂商图标 ==========
@@ -455,18 +440,6 @@ function vIcon(name) {
 }
 
 
-// 去掉千分位并转数字
-const num = (s) => parseFloat(String(s).replace(/,/g, ''));
-// 金额字符串转数字：优先取 markdown 粗体价（**$60**，通常是促销后的当前生效价），
-// 兼容删除线（~~$15~~）；无法解析返回 null（绝不返回 NaN）
-const money = (s) => {
-  if (s === '-' || s == null) return null;
-  const bold = String(s).match(/\*\*\$?([0-9,.]+)\*\*/);
-  const n = parseFloat((bold ? bold[1] : s).replace(/[$*\s]/g, ''));
-  return Number.isFinite(n) ? n : null;
-};
-// 模型名归一化：小写 + 去掉空格/连字符，用于模糊匹配
-const norm = (s) => s.toLowerCase().replace(/[\s\-_]+/g, '');
 // 千分位格式
 const fmt = (n) => Number(n).toLocaleString('en-US');
 // 缩写格式：100 → 100，1,000 → 1k，1,000,000 → 1M
@@ -617,7 +590,7 @@ function applyLang() {
 }
 
 // ========== 抓取 ==========
-async function fetchMdx() {
+async function fetchSource() {
   let lastErr;
   for (const url of SOURCES) {
     try {
@@ -626,129 +599,91 @@ async function fetchMdx() {
       return await res.text();
     } catch (e) { lastErr = e; }
   }
-  throw lastErr;
+  // 固定地址全挂时才去问 tree API：官方目录再重组也不用改代码
+  try {
+    return await fetchDiscovered();
+  } catch (e) { throw lastErr || e; }
 }
 
-// ========== mdx 解析 ==========
-// 按表头列名在全文定位 markdown 表，返回数据行二维数组。
-// 不依赖正文文案：官方文案语气反复改（"列示"→"计算"、"提供了…"→"估算…"），
-// 但表头列名是数据契约，稳定得多。
-// occurrence：文档里 Go / Go Plus 两套表表头完全相同，用出现序号区分 ——
-// 0 = 第一套（Go），1 = 第二套（Go Plus）。
-function parseTableByHeader(src, headers, occurrence = 0) {
-  const want = headers.map(norm);
-  const lines = src.split('\n');
-  let hit = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const head = lines[i].trim();
-    if (!head.startsWith('|')) continue;
-    const cells = head.split('|').slice(1, -1).map((c) => c.trim());
-    if (cells.length !== want.length || !cells.every((c, j) => norm(c) === want[j])) continue;
-    if (hit++ < occurrence) continue; // 需要第 N 套表时跳过前面几套
-    // 命中表头：下一行是 | --- | 分隔行，其后为数据行
-    const rows = [];
-    for (let j = i + 2; j < lines.length; j++) {
-      const t = lines[j].trim();
-      if (!t.startsWith('|')) break;
-      if (/^\|[\s:|-]+\|?$/.test(t)) continue; // 表内分隔行
-      rows.push(t.split('|').slice(1, -1).map((c) => c.trim()));
-    }
-    return rows;
-  }
-  return [];
+// 用 GitHub tree API 在 dev 分支里找 go-models.ts 的真实路径
+async function fetchDiscovered() {
+  const res = await fetch(TREE_API, { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const tree = (await res.json()).tree || [];
+  const hit = tree.find((n) => /\/component\/go-models\.ts$/.test(n.path))
+    || tree.find((n) => /go-models\.ts$/.test(n.path));
+  if (!hit) throw new Error('go-models.ts not found in repo tree');
+  const res2 = await fetch('https://raw.githubusercontent.com/anomalyco/opencode/dev/' + hit.path, { cache: 'no-store' });
+  if (!res2.ok) throw new Error('HTTP ' + res2.status);
+  return await res2.text();
 }
 
-// 解析每次请求的 token 数量列表，返回 [{ expr, in, cache, out }]
-function parsePatterns(src) {
-  // 全文扫描，不依赖段落锚点。行格式（2026-10 官方改为英文单语）：
-  //   - <模型表达式> — N input, N cached, N output tokens per request
-  const re = /^- (.+?) — ([0-9,]+) input, ([0-9,]+) cached, ([0-9,]+) output tokens per request$/gm;
+// ========== 数据文件解析 ==========
+// 官方数据源是 TS 源码，这里只做文本切片 + 字段匹配，绝不把远端内容当代码执行。
+// 取 src 中 start 之后、end 之前的片段（用于圈出数组 / 对象字面量）
+function sliceRegion(src, start, end) {
+  const i = src.indexOf(start);
+  if (i < 0) throw new Error('缺少章节：' + start.trim());
+  const from = i + start.length;
+  const j = src.indexOf(end, from);
+  if (j < 0) throw new Error('缺少章节结尾：' + end.trim());
+  return src.slice(from, j);
+}
+
+// 解析 [{ id: "kimi-k3", name: "Kimi K3", requests: 110, allowance: 15, fresh: true }, ...]
+function parseModelList(text) {
   const out = [];
-  let m;
-  while ((m = re.exec(src))) {
-    out.push({
-      expr: m[1],
-      in: num(m[2]), cache: num(m[3]), out: num(m[4]),
-    });
+  for (const m of text.matchAll(/\{([^{}]*)\}/g)) {
+    const model = {};
+    for (const kv of m[1].matchAll(/(\w+):\s*("(?:[^"\\]|\\.)*"|Infinity|-?[\d.]+|true|false)/g)) {
+      const raw = kv[2];
+      model[kv[1]] = raw[0] === '"' ? JSON.parse(raw)
+        : raw === 'Infinity' ? Infinity
+        : raw === 'true' ? true
+        : raw === 'false' ? false
+        : Number(raw);
+    }
+    if (model.id) out.push(model);
   }
   return out;
 }
 
-// 在模式匹配表中查找"最具体的匹配"：模式名是基准名的前缀，取最长
-// （如 "Kimi K2.7 Code" 匹配 "Kimi K2.7"）；若基准名反为模式的子串
-// 则取最短（如 "MiMo V2.5 Pro" 不误配 "MiMo V2.5"）
-function findPattern(patMap, baseNorm) {
-  let best = null, bestLen = 0, prefixFallback = null, fallbackLen = Infinity;
-  for (const [key, p] of patMap) {
-    if (baseNorm.startsWith(key) && key.length > bestLen) { best = p; bestLen = key.length; }
-    else if (key.startsWith(baseNorm) && key.length < fallbackLen) { prefixFallback = p; fallbackLen = key.length; }
+// 解析 { "kimi-k3": [440, 60], hy4: [10840, 240] } → { 'kimi-k3': [440, 60], ... }
+// 官方 key 有的带引号有的不带；类型注解里的 [number, number] 会被数值校验过滤掉
+function parsePlanMap(text) {
+  const map = {};
+  for (const m of text.matchAll(/"?([\w.\-]+)"?:\s*\[([^\]]+)\]/g)) {
+    const pair = m[2].split(',').map((s) => {
+      const v = s.trim();
+      return v === 'Infinity' ? Infinity : Number(v);
+    });
+    if (pair.length !== 2 || !pair.every((v) => v === Infinity || Number.isFinite(v))) continue;
+    map[m[1]] = pair;
   }
-  return best || prefixFallback;
-}
-
-// 展开合并写法的模型名，如 "GLM-5.3/5.2/5.1" → ["GLM-5.3","GLM-5.2","GLM-5.1"]
-function expandModelExpr(expr) {
-  const parts = expr.split('/').map((s) => s.trim()).filter(Boolean);
-  if (parts.length === 1) return parts;
-  const head = parts[0];
-  const names = [head];
-  for (let i = 1; i < parts.length; i++) {
-    const rest = parts[i];
-    // 规则1：rest 首词若出现在 head 中，取其之前的部分作前缀（如 "DeepSeek V4 Flash / V4 Flash Vision Exp"）
-    const firstWord = rest.split(/[\s-]+/)[0];
-    const idx = head.indexOf(firstWord);
-    let prefix;
-    if (idx > 0) {
-      prefix = head.slice(0, idx);
-    } else {
-      // 规则2：去掉 head 最后一个"段"（如 "GLM-5.3" → "GLM-"）
-      const m = head.match(/^(.*[\s-])[^\s-]+$/);
-      prefix = m ? m[1] : head;
-    }
-    names.push(prefix + rest);
-  }
-  return names;
+  return map;
 }
 
 // ========== 数据组装 ==========
 // 解析全部原始数据，返回 { time, items }
-function parse(mdx) {
-  // 价格+每月额度表、官方每月请求数对照表：均按表头列名定位（见 parseTableByHeader）
-  // 本页为 Go 套餐，取文档里第一套表（Go / Go Plus 两套表表头相同，靠序号区分）
+// 月请求口径：官方规定「5 小时限额 = 月额度的 20%」，请求数按同一单次成本换算，
+// 所以 月请求 = 5 小时估算 × 5。免费模型（Infinity）留在明细里但不进图表。
+function parse(src) {
+  // 本页为 Go 套餐（0）；Go Plus 页取 plusLimits（1）
   const PLAN = 0;
-  const prices = parseTableByHeader(mdx, ['Model', 'Input', 'Output', 'Cached Read', 'Cached Write', 'Monthly limit'], PLAN);
-  const patterns = parsePatterns(mdx);
-  const official = parseTableByHeader(mdx, ['Model', 'Requests per 5 hours', 'Requests per week', 'Requests per month'], PLAN);
+  const models = parseModelList(sliceRegion(src, 'const goModels', '\n]'));
+  const plus = parsePlanMap(sliceRegion(src, 'const plusLimits', '\n}'));
 
-  // 请求模式匹配表：归一化模型名 → token 构成
-  const patMap = new Map();
-  for (const p of patterns) {
-    for (const name of expandModelExpr(p.expr)) patMap.set(norm(name), p);
-  }
-  // 官方每月请求数对照表：归一化模型名 → 数字（取第 4 列）
-  const offMap = new Map();
-  for (const row of official) offMap.set(norm(row[0]), num(row[3]));
-
-  // 组装每个价格行条目
-  const items = prices.map((row) => {
-    const name = row[0];
-    const base = name.replace(/\s*\(.*?\)\s*$/, '').trim(); // 去掉括号档位标注
-    const price = {
-      in: money(row[1]), out: money(row[2]), cr: money(row[3]), cw: money(row[4]),
+  const items = models.map((m) => {
+    const plan = PLAN === 1 && plus[m.id] ? plus[m.id] : null;
+    const requests5h = plan ? plan[0] : m.requests;
+    const allowance = plan ? plan[1] : m.allowance;
+    const monthly = Number.isFinite(requests5h) ? requests5h * 5 : null;
+    // 每请求成本 = 月额度 ÷ 月请求（推导值）；免费模型没有这个口径
+    const cost = monthly ? allowance / monthly : null;
+    return {
+      name: m.name, requests5h, monthly, allowance, cost,
+      fresh: !!m.fresh, limited: !!m.limitedTime,
     };
-    const quota = money(row[5]);
-    const pat = findPattern(patMap, norm(base));
-    let monthly = null;
-    let cost = null;
-    if (pat && price.in != null && price.out != null && price.cr != null) {
-      // 每次请求成本 = (输入×单价 + 缓存×缓存价 + 输出×输出价) / 1M
-      cost = (pat.in * price.in + pat.cache * price.cr + pat.out * price.out) / 1e6;
-      // quota 解析失败时为 null，此时不做估算（避免 null→0 产生 monthly=0 的假数据）
-      monthly = cost > 0 && quota != null ? quota / cost : null;
-    }
-    const officialMonthly = offMap.get(norm(base)) ?? null;
-    const diff = (monthly != null && officialMonthly) ? (monthly - officialMonthly) / officialMonthly : null;
-    return { name, base, price, quota, pat, cost, monthly, officialMonthly, diff };
   });
   return { time: new Date().toISOString(), items };
 }
@@ -775,10 +710,8 @@ function render(data) {
   ordered.forEach((it, idx) => {
     const row = document.createElement('div');
     row.className = 'row';
-    const flag = it.diff != null && Math.abs(it.diff) > 0.1
-      ? '<span class="flag" title="' + t('flag.dev') + '">▲</span>' : '';
     row.innerHTML =
-      '<div class="row-name">' + vIcon(it.name) + esc(it.name) + flag + '</div>' +
+      '<div class="row-name">' + vIcon(it.name) + esc(it.name) + '</div>' +
       '<div class="track"></div>' +
       '<div class="row-value">' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</div>';
     const svg = document.createElementNS(SVGNS, 'svg');
@@ -790,31 +723,23 @@ function render(data) {
   });
 
   drawAxis(W, ticks);
-  renderDetailTable(items.filter((i) => Number.isFinite(i.monthly)));
+  renderDetailTable(items);
 }
 
-// tooltip：悬停显示单价/额度/估算明细
+// tooltip：悬停显示官方 5 小时估算 / 月请求 / 月额度 / 推导成本
 function bindTip(row, it) {
   row.addEventListener('mousemove', (e) => {
     const tip = $('#tip');
     const lines = [
-      [t('tip.est'), it.monthly != null ? fmt(Math.round(it.monthly)) : t('tip.est.na')],
-      [t('tip.off'), it.officialMonthly != null ? fmt(it.officialMonthly) : '—'],
-      [t('tip.quota'), it.quota != null ? '$' + it.quota : '—'],
+      [t('tip.r5'), it.requests5h != null ? fmt(it.requests5h) : '—'],
+      [t('tip.month'), it.monthly != null ? fmt(Math.round(it.monthly)) : '—'],
+      [t('tip.allow'), it.allowance != null ? '$' + it.allowance : '—'],
       [t('tip.cost'), it.cost != null ? '$' + it.cost.toFixed(6) : '—'],
     ];
-    if (it.diff != null && Math.abs(it.diff) > 0.1) {
-      lines.push([t('tip.diffLabel'), t('tip.diff', { pct: (it.diff * 100).toFixed(1) }), true]);
-    }
-    if (it.pat) lines.push([t('tip.pat'), t('tip.pat.v', { a: it.pat.in, b: it.pat.cache, c: it.pat.out })]);
-    lines.push(
-      [t('tip.price'), t('tip.p.line1', { i: '$' + (it.price.in ?? '-'), o: '$' + (it.price.out ?? '-') })],
-      ['', t('tip.p.line2', { c: '$' + (it.price.cr ?? '-'), w: '$' + (it.price.cw ?? '-') })],
-    );
     tip.innerHTML =
       '<div class="t-name">' + vIcon(it.name) + esc(it.name) + '</div>' +
-      '<div class="t-grid">' + lines.map(([k, v, warn]) =>
-        '<span class="k">' + k + '</span><span class="v' + (warn ? ' warn' : '') + '">' + v + '</span>').join('') + '</div>';
+      '<div class="t-grid">' + lines.map(([k, v]) =>
+        '<span class="k">' + k + '</span><span class="v">' + v + '</span>').join('') + '</div>';
     tip.classList.remove('hidden');
     // 相对视口定位，避免溢出
     const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -827,23 +752,22 @@ function bindTip(row, it) {
   row.addEventListener('mouseleave', () => $('#tip').classList.add('hidden'));
 }
 
-// 明细表
+// 明细表：免费模型也列出来（标记为免费不限量），便于对照官方全量模型
 function renderDetailTable(items) {
   const t2 = $('#detail-table');
-  const cols = ['dt.model', 'dt.quota', 'dt.in', 'dt.out', 'dt.cr', 'dt.cw', 'dt.cost', 'dt.est', 'dt.off', 'dt.diff'];
+  const cols = ['dt.model', 'dt.r5', 'dt.month', 'dt.allow', 'dt.cost', 'dt.tag'];
   const head = '<tr>' + cols.map((c) => '<th>' + t(c) + '</th>').join('') + '</tr>';
   const body = items.map((it) => {
-    const diff = it.diff == null ? '—' : (it.diff * 100).toFixed(1) + '%';
+    const tags = [];
+    if (!Number.isFinite(it.requests5h)) tags.push(t('tip.tag.free'));
+    if (it.limited) tags.push(t('tip.tag.limited'));
+    if (it.fresh) tags.push(t('tip.tag.fresh'));
     return '<tr><td>' + vIcon(it.name) + esc(it.name) + '</td>' +
-      '<td>$' + (it.quota ?? '-') + '</td>' +
-      '<td>' + (it.price.in ?? '-') + '</td>' +
-      '<td>' + (it.price.out ?? '-') + '</td>' +
-      '<td>' + (it.price.cr ?? '-') + '</td>' +
-      '<td>' + (it.price.cw ?? '-') + '</td>' +
+      '<td>' + (Number.isFinite(it.requests5h) ? fmt(it.requests5h) : '∞') + '</td>' +
+      '<td>' + (it.monthly != null ? fmt(Math.round(it.monthly)) : '∞') + '</td>' +
+      '<td>' + (Number.isFinite(it.allowance) ? '$' + it.allowance : '∞') + '</td>' +
       '<td>' + (it.cost != null ? it.cost.toFixed(6) : '-') + '</td>' +
-      '<td>' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</td>' +
-      '<td>' + (it.officialMonthly != null ? fmt(it.officialMonthly) : '-') + '</td>' +
-      '<td>' + diff + '</td></tr>';
+      '<td>' + tags.join(' · ') + '</td></tr>';
   }).join('');
   t2.innerHTML = head + body;
 }
@@ -867,11 +791,13 @@ async function load() {
     setMeta('meta.cache', { time: hasCache.time });
   }
   try {
-    const mdx = await fetchMdx();
-    const data = parse(mdx);
+    const src = await fetchSource();
+    const data = parse(src);
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     render(data);
-    setMeta('meta.ok', { time: data.time, n: data.items.length });
+    // 免费模型不计入图表，单独在 meta 里说明
+    const free = data.items.filter((i) => !Number.isFinite(i.monthly)).length;
+    setMeta(free ? 'meta.ok' : 'meta.ok2', { time: data.time, n: data.items.length - free, free });
     $('#error').style.display = 'none';
   } catch (e) {
     if (!hasCache) {
