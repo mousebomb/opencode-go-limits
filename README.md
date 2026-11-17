@@ -62,7 +62,7 @@
 - 月请求按官方口径推算：5 小时限额 = 月额度的 20%，故 `月请求 = 5 小时估算 × 5`。
 - 免费模型（`Infinity`）保留在明细表并标记「免费不限量」，不进图表（对数刻度容不下无穷）。
 - 解析只做文本切片与字段匹配，不执行远端内容；官方再挪路径时 `SOURCES` 全失败会触发 tree API 兜底。
-- **ZDR 标记**（明细表新增一列）：额度文件里没有这项，另抓 `https://opencode.ai/inference/go/v1/models` 中每个模型的 `go.zdr`（免鉴权、带 `Access-Control-Allow-Origin: *`）。只表达「是否零数据留存」，不区分是否用于训练；该接口挂掉时这一列显示 `—`，主表照常，额度数据不受影响。
+- **ZDR 标记**：明细表新增一列（`✓ ZDR` / `✗ 非 ZDR` / `—`），图表每条也挂一枚小角标，但只给 ZDR 模型挂，非 ZDR 不挂。数据来自 `https://opencode.ai/inference/go/v1/models` 中每个模型的 `go.zdr`（免鉴权、带 `Access-Control-Allow-Origin: *`），只表达「是否零数据留存」，不区分是否用于训练；该接口挂掉时明细表这一列显示 `—`，主表照常，额度数据不受影响。
 
 ## OpenCode Go Plus（go-plus-limits.html）
 

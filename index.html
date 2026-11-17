@@ -134,8 +134,16 @@
   .row { padding: 4px 0; border-radius: 9px; }
   .row:hover { background: rgba(47, 93, 138, .07); }
   .row > * { min-width: 0; }
-  .row-name {
-    font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* 行名用 flex：模型名自己负责省略号，ZDR 角标永远不被裁掉 */
+  .row-name { display: flex; align-items: center; font-size: 14px; }
+  .row-name > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-name .v-icon { flex: none; }
+  /* ZDR 角标：只标 ZDR 模型（非 ZDR / 未知一律不标），小小一枚贴在名字后面 */
+  .zdr-badge {
+    flex: none; margin-left: 6px; padding: 0 4px;
+    font-family: var(--hand); font-size: 9px; line-height: 14px; letter-spacing: .6px;
+    color: var(--accent-2); border: 1px solid currentColor;
+    border-radius: 4px 2px 4px 2px; opacity: .9;
   }
   /* 厂商图标：内联单色 SVG（deploy 只传 *.html，不能引外部图片）。
      用 currentColor 跟着文字走，默认比正文浅一档，悬停时压深。 */
@@ -323,6 +331,7 @@ const DICT = {
     'dt.model': '模型', 'dt.zdr': 'ZDR', 'dt.r5': '5 小时估算', 'dt.month': '每月估算',
     'dt.allow': '月额度$', 'dt.cost': '每请求成本$', 'dt.tag': '标记',
     'zdr.yes': 'ZDR', 'zdr.no': '非 ZDR', 'zdr.unknown': '—',
+    'zdr.badgeTitle': '零数据留存：提供商不留存请求数据',
     'tip.r5': '官方 5 小时预估请求数',
     'tip.month': '每月请求数（5 小时估算 × 5）',
     'tip.allow': '每月使用额度',
@@ -352,6 +361,7 @@ const DICT = {
     'dt.model': 'Model', 'dt.zdr': 'ZDR', 'dt.r5': 'Per 5 h', 'dt.month': 'Per month',
     'dt.allow': 'Quota $', 'dt.cost': 'Cost/req $', 'dt.tag': 'Tags',
     'zdr.yes': 'ZDR', 'zdr.no': 'No ZDR', 'zdr.unknown': '—',
+    'zdr.badgeTitle': 'Zero data retention: the provider does not retain request data',
     'tip.r5': 'Official estimate per 5 hours',
     'tip.month': 'Requests / month (5-hour estimate × 5)',
     'tip.allow': 'Monthly quota',
@@ -736,7 +746,8 @@ function render(data) {
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML =
-      '<div class="row-name">' + vIcon(it.name) + esc(it.name) + '</div>' +
+      '<div class="row-name">' + vIcon(it.name) +
+      '<span class="name">' + esc(it.name) + '</span>' + zdrBadge(it.zdr) + '</div>' +
       '<div class="track"></div>' +
       '<div class="row-value">' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</div>';
     const svg = document.createElementNS(SVGNS, 'svg');
@@ -797,6 +808,11 @@ function renderDetailTable(items) {
       '<td>' + tags.join(' · ') + '</td></tr>';
   }).join('');
   t2.innerHTML = head + body;
+}
+
+// ZDR 角标：只给 ZDR 模型挂，非 ZDR / 未知都不挂（完整三态看明细表）
+function zdrBadge(v) {
+  return v === true ? '<span class="zdr-badge" title="' + esc(t('zdr.badgeTitle')) + '">ZDR</span>' : '';
 }
 
 // ZDR 三态文案：true 是零留存，false 是有留存，null 是接口没取到
