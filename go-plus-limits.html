@@ -163,6 +163,8 @@
   /* 悬停 = 描边加重，像重新描了一遍 */
   .row:hover .sk-line path { stroke-width: 2.3; }
   .row:hover .sk-fill path { opacity: .65; }
+  .row.is-free .row-value { color: var(--accent-2); }
+  .row.is-free .sk-line path { stroke-dasharray: 5 4; }
 
   /* ---------- 坐标轴 ---------- */
   .axis { height: 40px; margin-top: 2px; align-items: start; }
@@ -172,6 +174,7 @@
     position: absolute; top: 14px; transform: translateX(-50%);
     font-family: var(--hand-num); font-size: 12px; color: var(--ink-3); white-space: nowrap;
   }
+  .tick.free-tick { color: var(--accent-2); font-size: 15px; top: 11px; }
 
   /* ---------- 悬浮卡片 ---------- */
   #tip {
@@ -322,7 +325,7 @@ const DICT = {
     'btn.refresh': '立即刷新',
     'meta.fetching': '正在获取最新数据…',
     'meta.wait': '等待在线数据…',
-    'meta.ok': '数据抓取于 {time} · 共 {n} 个模型（另有 {free} 个免费不限量）· 来源：opencode.ai 官方数据',
+    'meta.ok': '数据抓取于 {time} · 共 {n} 个模型（含 {free} 个免费不限量）· 来源：opencode.ai 官方数据',
     'meta.ok2': '数据抓取于 {time} · 共 {n} 个模型 · 来源：opencode.ai 官方数据',
     'meta.cache': '正在使用本地缓存（抓取于 {time}），并尝试在线更新…',
     'meta.fallback': '在线抓取失败，当前显示本地缓存。{msg}',
@@ -337,12 +340,13 @@ const DICT = {
     'zdr.badgeTitle': '零数据留存：提供商不留存请求数据',
     'tip.r5': '官方 5 小时预估请求数',
     'tip.month': '每月请求数（5 小时估算 × 5）',
+    'tip.freeBar': '图形标记（最长有限额度的 1.2 倍）',
     'tip.allow': '每月使用额度',
     'tip.cost': '每请求成本（月额度 ÷ 月请求）',
     'tip.tag.free': '免费不限量', 'tip.tag.limited': '限时', 'tip.tag.fresh': '新',
     'gh.star': '去 GitHub 点亮 Star',
     'footer.line1': '数据源：<a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a>（GitHub <code>anomalyco/opencode</code> 的 <code>go-models.ts</code>）。',
-    'footer.line2': '本页取 <strong>Go Plus 方案</strong>的 5 小时估算与月额度（官方同名单里的 plus 一档）；月请求按官方口径推算：5 小时限额为月额度的 20%，故月请求 = 5 小时估算 × 5。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。ZDR 标记另取自 opencode.ai 的 Go 模型接口（每模型的 <code>go.zdr</code>），该接口不可用时该列显示 —。',
+    'footer.line2': '本页取 <strong>Go Plus 方案</strong>的 5 小时估算与月额度（官方同名单里的 plus 一档）；月请求按官方口径推算：5 小时限额为月额度的 20%，故月请求 = 5 小时估算 × 5。免费不限量模型用虚线胶囊形展示，图形长度为当前最长有限额度的 1.2 倍，仅作视觉标记，不代表真实请求数。打开页面即自动抓取最新数据；抓取失败时回退到本地缓存。ZDR 标记另取自 opencode.ai 的 Go 模型接口（每模型的 <code>go.zdr</code>），该接口不可用时该列显示 —。',
   },
   en: {
     'page.title': 'OpenCode Go Plus · Estimated requests / month',
@@ -368,12 +372,13 @@ const DICT = {
     'zdr.badgeTitle': 'Zero data retention: the provider does not retain request data',
     'tip.r5': 'Official estimate per 5 hours',
     'tip.month': 'Requests / month (5-hour estimate × 5)',
+    'tip.freeBar': 'Visual marker (1.2× the longest finite bar)',
     'tip.allow': 'Monthly quota',
     'tip.cost': 'Cost per request (quota ÷ monthly requests)',
     'tip.tag.free': 'Free unlimited', 'tip.tag.limited': 'Limited time', 'tip.tag.fresh': 'New',
     'gh.star': 'Star on GitHub',
     'footer.line1': 'Source: <a href="https://opencode.ai/console/go#limits" target="_blank" rel="noopener">opencode.ai Console</a> (GitHub <code>anomalyco/opencode</code> → <code>go-models.ts</code>).',
-    'footer.line2': 'This page uses the <strong>Go Plus plan</strong> 5-hour estimate and monthly quota (the plus entry in the official data file). Monthly requests are derived from the official rule that the 5-hour limit is 20% of the monthly allowance, so monthly = 5-hour estimate × 5. Data is fetched automatically on load; falls back to the last successful cache if fetching fails. The ZDR flag comes from the opencode.ai Go models endpoint (<code>go.zdr</code> per model); when that endpoint is unreachable this column shows —.',
+    'footer.line2': 'This page uses the <strong>Go Plus plan</strong> 5-hour estimate and monthly quota (the plus entry in the official data file). Monthly requests are derived from the official rule that the 5-hour limit is 20% of the monthly allowance, so monthly = 5-hour estimate × 5. Free unlimited models use a dashed capsule 1.2× the longest finite bar; this is only a visual marker, not a real request count. Data is fetched automatically on load; falls back to the last successful cache if fetching fails. The ZDR flag comes from the opencode.ai Go models endpoint (<code>go.zdr</code> per model); when that endpoint is unreachable this column shows —.',
   },
 };
 // 语言：localStorage 优先，其次检测系统语言（zh 开头 → 中文，否则英文）
@@ -480,6 +485,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const TRACK_H = 24;   // 每行 SVG 高度
 const BAR_H = 12;     // 条形高度
 const PAD_X = 3;      // 左右留白，防止手绘线被 overflow 裁掉
+const FREE_BAR_RATIO = 1.2; // 免费模型图形长度 = 最长有限额度条形 × 1.2
 
 // 十六进制混色：t=0 → c1，t=1 → c2
 function mix(c1, c2, t) {
@@ -494,19 +500,19 @@ function withAlpha(hex, a) {
 }
 
 // 对数刻度上每个 10 的整数次幂作为一个刻度，返回 [{ p, label }]
-function buildTicks(lo, span) {
+function buildTicks(lo, span, maxPct = 100) {
   const out = [];
   for (let k = Math.floor(lo); k <= Math.ceil(lo + span); k++) {
-    const raw = ((k - lo) / span) * 100;
-    if (raw < -0.01 || raw > 100.01) continue;
-    out.push({ p: Math.max(0, Math.min(100, raw)), label: fmtShort(10 ** k) });
+    const raw = ((k - lo) / span) * maxPct;
+    if (raw < -0.01 || raw > maxPct + 0.01) continue;
+    out.push({ p: Math.max(0, Math.min(maxPct, raw)), label: fmtShort(10 ** k) });
   }
   return out;
 }
 
 // 画一行：稿纸横线 + 对数网格 + 手绘条形
-// seed 决定这一行线条的「抖动样式」；dim=true 表示无数据（只留空行）
-function drawRow(svg, W, pct, ticks, seed, dim) {
+// seed 决定这一行线条的「抖动样式」；free=true 时画虚线胶囊，表示免费不限量
+function drawRow(svg, W, pct, ticks, seed, free) {
   svg.innerHTML = '';
   svg.setAttribute('width', W);
   svg.setAttribute('height', TRACK_H);
@@ -526,11 +532,31 @@ function drawRow(svg, W, pct, ticks, seed, dim) {
       stroke: THEME.rule, strokeWidth: 0.8, roughness: 1.7, bowing: 1.6, seed: 300 + i,
     }));
   });
-  if (dim) return;
 
   const w = Math.max(5, (W - PAD_X * 2) * (pct / 100));
   const y = mid - BAR_H / 2;
   const box = { roughness: 1.35, bowing: 1.5, seed };
+
+  // 免费不限量没有有限数值，单独用虚线胶囊表示，避免把 Infinity 塞进对数刻度
+  if (free) {
+    const r = BAR_H / 2;
+    const right = PAD_X + w - r;
+    const d = 'M ' + (PAD_X + r) + ' ' + y + ' H ' + right +
+      ' A ' + r + ' ' + r + ' 0 0 1 ' + right + ' ' + (y + BAR_H) +
+      ' H ' + (PAD_X + r) + ' A ' + r + ' ' + r + ' 0 0 1 ' + (PAD_X + r) + ' ' + y + ' Z';
+    const wash = rc.path(d, Object.assign({}, box, {
+      stroke: 'none', fill: withAlpha(THEME.accent2, 0.1), fillStyle: 'solid',
+    }));
+    wash.setAttribute('class', 'sk-wash');
+    svg.appendChild(wash);
+    const line = rc.path(d, Object.assign({}, box, {
+      stroke: THEME.accent2, strokeWidth: 1.2, fill: 'none',
+    }));
+    line.setAttribute('class', 'sk-line');
+    svg.appendChild(line);
+    return;
+  }
+
   const tone = mix(THEME.accent, THEME.accent2, pct / 100); // 低值偏靛蓝，高值偏松绿
 
   // 1) 淡彩底色：极淡的实色打底，让条形是「上了色」而不是「只勾了个框」，
@@ -560,8 +586,8 @@ function drawRow(svg, W, pct, ticks, seed, dim) {
   svg.appendChild(line);
 }
 
-// 画横轴：手绘轴线 + 刻度短线 + 数字标签
-function drawAxis(W, ticks) {
+// 画横轴：手绘轴线 + 刻度短线 + 数字标签；有免费模型时在末端补一个 ∞ 标记
+function drawAxis(W, ticks, hasFree) {
   const svg = $('#axisSvg');
   const track = $('#axisTrack');
   svg.innerHTML = '';
@@ -587,6 +613,13 @@ function drawAxis(W, ticks) {
     s.textContent = tk.label;
     track.appendChild(s);
   });
+  if (hasFree) {
+    const s = document.createElement('span');
+    s.className = 'tick free-tick';
+    s.style.left = Math.max(W - 16, 16) + 'px';
+    s.textContent = '∞';
+    track.appendChild(s);
+  }
 }
 
 // ========== 语言应用 ==========
@@ -703,7 +736,7 @@ function parsePlanMap(text) {
 // 解析全部原始数据，返回 { time, zdr, items }
 // zdr：{ id: boolean } 或 null（外部接口没取到），只影响明细表的 ZDR 列
 // 月请求口径：官方规定「5 小时限额 = 月额度的 20%」，请求数按同一单次成本换算，
-// 所以 月请求 = 5 小时估算 × 5。免费模型（Infinity）留在明细里但不进图表。
+// 所以 月请求 = 5 小时估算 × 5。免费模型（Infinity）的 monthly 记为 null，渲染时排在最后。
 function parse(src, zdr) {
   // 本页为 Go Plus 套餐（1）：5 小时估算与月额度都取 plusLimits 里对应的一档
   const PLAN = 1;
@@ -731,15 +764,20 @@ function parse(src, zdr) {
 function render(data) {
   lastData = data;
   const { items } = data;
-  // 只展示可估算的档位；monthly 必须为有限数字（NaN/Infinity 会污染对数刻度导致整图崩溃）
-  const ordered = items.filter((i) => Number.isFinite(i.monthly)).sort((a, b) => a.monthly - b.monthly);
+  // 有限额度按对数刻度排序；免费不限量统一排在末尾，不参与数值计算
+  const finite = items.filter((i) => Number.isFinite(i.monthly)).sort((a, b) => a.monthly - b.monthly);
+  const free = items.filter((i) => !Number.isFinite(i.monthly));
+  const ordered = finite.concat(free);
+  const hasFree = free.length > 0;
+  // 为免费条预留末尾 1/6 的宽度：有限条最长占 5/6，免费条占满，恰好为 1.2 倍
+  const finiteMaxPct = hasFree ? 100 / FREE_BAR_RATIO : 100;
 
   // 对数刻度范围（避免线性刻度下小值不可见）
-  const lo = ordered.length ? Math.log10(Math.min(...ordered.map((i) => i.monthly))) : 0;
-  const hi = ordered.length ? Math.log10(Math.max(...ordered.map((i) => i.monthly))) : 1;
+  const lo = finite.length ? Math.log10(finite[0].monthly) : 0;
+  const hi = finite.length ? Math.log10(finite[finite.length - 1].monthly) : 1;
   const span = hi - lo || 1;
-  const x = (v) => Math.max(0, Math.min(100, ((Math.log10(v) - lo) / span) * 100));
-  const ticks = buildTicks(lo, span);
+  const x = (v) => Math.max(0, Math.min(finiteMaxPct, ((Math.log10(v) - lo) / span) * finiteMaxPct));
+  const ticks = finite.length ? buildTicks(lo, span, finiteMaxPct) : [];
 
   // 轨道宽度：SVG 是绝对定位的，不参与网格计算，所以这里量到的就是干净的列宽
   const W = Math.round($('#axisTrack').clientWidth) || 380;
@@ -747,22 +785,23 @@ function render(data) {
   const rows = $('#rows');
   rows.innerHTML = '';
   ordered.forEach((it, idx) => {
+    const isFree = !Number.isFinite(it.monthly);
     const row = document.createElement('div');
-    row.className = 'row';
+    row.className = isFree ? 'row is-free' : 'row';
     row.innerHTML =
       '<div class="row-name">' + vIcon(it.name) +
       '<span class="name">' + esc(it.name) + '</span>' + zdrBadge(it.zdr) + '</div>' +
       '<div class="track"></div>' +
-      '<div class="row-value">' + (it.monthly != null ? fmt(Math.round(it.monthly)) : 'N/A') + '</div>';
+      '<div class="row-value">' + (isFree ? '∞' : fmt(Math.round(it.monthly))) + '</div>';
     const svg = document.createElementNS(SVGNS, 'svg');
     row.querySelector('.track').appendChild(svg);
     // 每行换一个 seed：条形各画各的，才像人一笔一笔描出来的（网格线则共用 seed 保持对齐）
-    drawRow(svg, W, it.monthly == null ? 0 : x(it.monthly), ticks, 1000 + idx * 37, it.monthly == null);
+    drawRow(svg, W, isFree ? 100 : x(it.monthly), ticks, 1000 + idx * 37, isFree);
     bindTip(row, it);
     rows.appendChild(row);
   });
 
-  drawAxis(W, ticks);
+  drawAxis(W, ticks, hasFree);
   renderDetailTable(items);
 }
 
@@ -770,10 +809,12 @@ function render(data) {
 function bindTip(row, it) {
   row.addEventListener('mousemove', (e) => {
     const tip = $('#tip');
+    const isFree = !Number.isFinite(it.monthly);
     const lines = [
-      [t('tip.r5'), it.requests5h != null ? fmt(it.requests5h) : '—'],
-      [t('tip.month'), it.monthly != null ? fmt(Math.round(it.monthly)) : '—'],
-      [t('tip.allow'), it.allowance != null ? '$' + it.allowance : '—'],
+      [t('tip.r5'), Number.isFinite(it.requests5h) ? fmt(it.requests5h) : '∞'],
+      [t('tip.month'), isFree ? '∞' : fmt(Math.round(it.monthly))],
+      ...(isFree ? [[t('tip.freeBar'), '1.2 ×']] : []),
+      [t('tip.allow'), Number.isFinite(it.allowance) ? '$' + it.allowance : '∞'],
       [t('tip.cost'), it.cost != null ? '$' + it.cost.toFixed(6) : '—'],
     ];
     tip.innerHTML =
@@ -854,9 +895,9 @@ async function load() {
     const data = parse(src, zdr || (hasCache && hasCache.zdr) || null);
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     render(data);
-    // 免费模型不计入图表，单独在 meta 里说明
+    // 免费模型也计入图表行数，meta 中单独说明其中有多少个不限量模型
     const free = data.items.filter((i) => !Number.isFinite(i.monthly)).length;
-    setMeta(free ? 'meta.ok' : 'meta.ok2', { time: data.time, n: data.items.length - free, free });
+    setMeta(free ? 'meta.ok' : 'meta.ok2', { time: data.time, n: data.items.length, free });
     $('#error').style.display = 'none';
   } catch (e) {
     if (!hasCache) {
