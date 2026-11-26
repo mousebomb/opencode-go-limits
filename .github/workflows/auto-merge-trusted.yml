@@ -1,0 +1,29 @@
+name: 自动合并可信 PR
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    name: auto-merge
+    # 只信何见香仓库的 main 分支，且 PR 作者必须与仓库所有者一致。
+    if: >-
+      github.repository == 'mousebomb/opencode-go-limits' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == 'Jessamine-He/opencode-go-limits' &&
+      github.event.pull_request.user.login == 'Jessamine-He'
+    runs-on: ubuntu-latest
+    steps:
+      # 不检出、不执行 PR 代码；分支保护会等待必需的 ci 检查通过。
+      - name: 启用 squash 自动合并
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR_NUMBER" --repo "$GH_REPO" --auto --squash
