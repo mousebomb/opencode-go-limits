@@ -4,6 +4,7 @@
   "private": true,
   "description": "OpenCode Go 每月预估请求数可视化工具（单文件 HTML）",
   "scripts": {
+    "check": "node mbtools/check-html.cjs",
     "deploy": "node mbtools/deploy.cjs",
     "setup:hooks": "git config core.hooksPath .githooks"
   },
